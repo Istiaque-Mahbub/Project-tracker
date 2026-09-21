@@ -1,6 +1,7 @@
 ﻿
 
 using DeveloperProjectTrackerDomain.Enums;
+using System.ComponentModel.DataAnnotations;
 
 
 namespace DeveloperProjectTrackerDomain.Entities
@@ -9,6 +10,7 @@ namespace DeveloperProjectTrackerDomain.Entities
     {
         public Guid Id { get; set; }
         public string FullName { get; set; } = string.Empty;
+        [EmailAddress]
         public string Email { get; set; } = string.Empty;
         public string PasswordHash { get; set; } = string.Empty;
         public UserRole Role { get; set; }
@@ -16,7 +18,7 @@ namespace DeveloperProjectTrackerDomain.Entities
         public DateTime? UpdatedAt { get; set; }
 
 
-        public ICollection<Project> OwnProjects { get; set; } =
+        public ICollection<Project> OwnedProjects { get; set; } =
             new List<Project>();
         public ICollection<ProjectMember> ProjectMemberships { get; set; } = 
             new List<ProjectMember>();

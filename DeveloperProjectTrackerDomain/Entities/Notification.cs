@@ -1,5 +1,4 @@
-﻿;
-
+﻿
 namespace DeveloperProjectTrackerDomain.Entities
 {
     public class Notification
@@ -14,4 +13,4 @@ namespace DeveloperProjectTrackerDomain.Entities
     }
 
     }
-}
+
