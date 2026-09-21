@@ -113,6 +113,16 @@
         "frameworkReferences": [
           "Microsoft.AspNetCore.App"
         ]
+      },
+      "DeveloperProjectTrackerDomain/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "compile": {
+          "bin/placeholder/DeveloperProjectTrackerDomain.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/DeveloperProjectTrackerDomain.dll": {}
+        }
       }
     }
   },
@@ -489,10 +499,16 @@
         "swashbuckle.aspnetcore.swaggerui.10.2.3.nupkg.sha512",
         "swashbuckle.aspnetcore.swaggerui.nuspec"
       ]
+    },
+    "DeveloperProjectTrackerDomain/1.0.0": {
+      "type": "project",
+      "path": "../DeveloperProjectTrackerDomain/DeveloperProjectTrackerDomain.csproj",
+      "msbuildProject": "../DeveloperProjectTrackerDomain/DeveloperProjectTrackerDomain.csproj"
     }
   },
   "projectFileDependencyGroups": {
     "net10.0": [
+      "DeveloperProjectTrackerDomain >= 1.0.0",
       "Microsoft.AspNetCore.OpenApi >= 10.0.12",
       "Swashbuckle.AspNetCore >= 10.2.3"
     ]
@@ -530,7 +546,11 @@
         "net10.0": {
           "framework": "net10.0",
           "targetAlias": "net10.0",
-          "projectReferences": {}
+          "projectReferences": {
+            "E:\\C#\\DeveloperProjectTracker.API\\DeveloperProjectTrackerDomain\\DeveloperProjectTrackerDomain.csproj": {
+              "projectPath": "E:\\C#\\DeveloperProjectTracker.API\\DeveloperProjectTrackerDomain\\DeveloperProjectTrackerDomain.csproj"
+            }
+          }
         }
       },
       "warningProperties": {
