@@ -2,7 +2,7 @@
 
 namespace DeveloperProjectTrackerDomain.Enums
 {
-  public enum TaskStatus
+    public enum TaskStatus
     {
         Backlog,
         Todo,
