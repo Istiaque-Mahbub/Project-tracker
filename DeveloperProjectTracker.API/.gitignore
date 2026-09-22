@@ -1,2 +1,47 @@
+# Build output
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+
+# Visual Studio Code
+.vscode/
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+
+# Test results
+TestResults/
+*.trx
+
+# Logs
+*.log
+
+# ASP.NET Core
+wwwroot/lib/
+
+# Local configuration / secrets
 appsettings.Development.json
-appsettings.json
+appsettings.Local.json
+
+# Environment variables
+.env
+.env.*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Generated files
+Generated/
