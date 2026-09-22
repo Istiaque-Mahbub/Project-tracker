@@ -12,5 +12,5 @@ namespace DeveloperProjectTrackerDomain.Entities
         public User User { get; set; } = null!;
     }
 
-    }
+}
 
