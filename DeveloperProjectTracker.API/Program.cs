@@ -1,3 +1,4 @@
+using DeveloperProjectTracker.API.Configuration;
 using DeveloperProjectTracker.API.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,6 +11,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 options.UseNpgsql(
    builder.Configuration.GetConnectionString("DefaultConnection")
     ));
+
+//JWT
+builder.Services.Configure<JwtSettings>(
+    builder.Configuration.GetSection("Jwt"));
 
 // Add Swagger
 builder.Services.AddEndpointsApiExplorer();
