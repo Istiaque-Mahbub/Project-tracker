@@ -7,7 +7,7 @@ namespace DeveloperProjectTracker.API.Data
     public class ApplicationDbContext : DbContext
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-            :base(options)
+            : base(options)
         {
 
         }
@@ -23,5 +23,14 @@ namespace DeveloperProjectTracker.API.Data
         public DbSet<WorkLog> Worklogs => Set<WorkLog>();
         public DbSet<Notification> Notifications => Set<Notification>();
         public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
+
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.ApplyConfigurationsFromAssembly(
+                typeof(ApplicationDbContext).Assembly);
+        }
     }
 }

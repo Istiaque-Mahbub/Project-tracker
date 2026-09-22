@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="DeveloperProjectTracker.API/DeveloperProjectTracker.API.csproj" />
+  <Project Path="DeveloperProjectTrackerDomain/DeveloperProjectTrackerDomain.csproj" />
 </Solution>
