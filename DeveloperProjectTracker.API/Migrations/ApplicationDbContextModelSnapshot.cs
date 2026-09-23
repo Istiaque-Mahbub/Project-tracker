@@ -257,6 +257,39 @@ namespace DeveloperProjectTracker.API.Migrations
                     b.ToTable("ProjectMembers", (string)null);
                 });
 
+            modelBuilder.Entity("DeveloperProjectTrackerDomain.Entities.RefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RefreshTokens");
+                });
+
             modelBuilder.Entity("DeveloperProjectTrackerDomain.Entities.TaskItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -510,6 +543,17 @@ namespace DeveloperProjectTracker.API.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("DeveloperProjectTrackerDomain.Entities.RefreshToken", b =>
+                {
+                    b.HasOne("DeveloperProjectTrackerDomain.Entities.User", "User")
+                        .WithMany("RefreshTokens")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("DeveloperProjectTrackerDomain.Entities.TaskItem", b =>
                 {
                     b.HasOne("DeveloperProjectTrackerDomain.Entities.User", "AssignedTo")
@@ -628,6 +672,8 @@ namespace DeveloperProjectTracker.API.Migrations
                     b.Navigation("OwnedProjects");
 
                     b.Navigation("ProjectMemberships");
+
+                    b.Navigation("RefreshTokens");
 
                     b.Navigation("WorkLogs");
                 });
