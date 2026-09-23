@@ -1,5 +1,8 @@
 using DeveloperProjectTracker.API.Configuration;
 using DeveloperProjectTracker.API.Data;
+using DeveloperProjectTracker.API.Services.Auth;
+using DeveloperProjectTrackerDomain.Entities;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +18,11 @@ options.UseNpgsql(
 //JWT
 builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection("Jwt"));
+builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+builder.Services.AddScoped<IPasswordHasher<User>,
+    PasswordHasher<User>>();
 
 // Add Swagger
 builder.Services.AddEndpointsApiExplorer();
