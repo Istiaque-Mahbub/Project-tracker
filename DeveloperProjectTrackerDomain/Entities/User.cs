@@ -39,6 +39,9 @@ namespace DeveloperProjectTrackerDomain.Entities
 
         public ICollection<ActivityLog> Activities { get; set; }
             = new List<ActivityLog>();
+
+      public ICollection<RefreshToken> RefreshTokens { get; set; }
+    = new List<RefreshToken>();
     }
 
     }
