@@ -42,6 +42,9 @@ namespace DeveloperProjectTrackerDomain.Entities
 
       public ICollection<RefreshToken> RefreshTokens { get; set; }
     = new List<RefreshToken>();
+
+      public ICollection<TenantMembership> TenantMemberships { get; set; }
+    = new List<TenantMembership>();
     }
 
     }

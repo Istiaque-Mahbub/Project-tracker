@@ -11,7 +11,8 @@ namespace DeveloperProjectTrackerDomain.Entities
         public DateTime CreateAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdateAt { get; set; }
         public User Owner { get; set; } = null!;
-
+        public Guid TenantId { get; set; }
+        public Tenant Tenant { get; set; } = null!;
 
         public ICollection<ProjectMember> Members { get; set; }
                 = new List<ProjectMember>();

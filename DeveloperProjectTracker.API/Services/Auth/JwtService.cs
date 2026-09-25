@@ -1,5 +1,6 @@
 ﻿using DeveloperProjectTracker.API.Configuration;
 using DeveloperProjectTrackerDomain.Entities;
+using DeveloperProjectTrackerDomain.Enums;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -13,27 +14,48 @@ namespace DeveloperProjectTracker.API.Services.Auth
     {
         private readonly JwtSettings _jwtSettings;
 
-        public JwtService (IOptions<JwtSettings> jwtSettings)
+        public JwtService(IOptions<JwtSettings> jwtSettings)
         {
             _jwtSettings = jwtSettings.Value;
         }
 
-        public string GenerateAccessToken(User user)
+        public string GenerateAccessToken(
+            User user,
+            Guid? tenantId = null,
+            TenantRole? tenantRole = null)
         {
             var claims = new List<Claim>
             {
                 new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new(JwtRegisteredClaimNames.Email, user.Email),
-                new(ClaimTypes.NameIdentifier,user.FullName),
+                new(ClaimTypes.NameIdentifier, user.FullName),
                 new(ClaimTypes.Role, user.Role.ToString())
             };
+
+            // Add tenant information when the user
+            // is accessing a specific tenant.
+            if (tenantId.HasValue)
+            {
+                claims.Add(
+                    new Claim(
+                        "tenantId",
+                        tenantId.Value.ToString()));
+            }
+
+            if (tenantRole.HasValue)
+            {
+                claims.Add(
+                    new Claim(
+                        "tenantRole",
+                        tenantRole.Value.ToString()));
+            }
 
             var key = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(_jwtSettings.Key));
 
             var credentials = new SigningCredentials(
-           key,
-           SecurityAlgorithms.HmacSha256);
+                key,
+                SecurityAlgorithms.HmacSha256);
 
             var expires = DateTime.UtcNow.AddMinutes(
                 _jwtSettings.AccessTokenExpirationMinutes);
@@ -47,12 +69,12 @@ namespace DeveloperProjectTracker.API.Services.Auth
 
             return new JwtSecurityTokenHandler()
                 .WriteToken(token);
-
-
         }
+
         public string GenerateRefreshToken()
         {
-            var randomBytes = RandomNumberGenerator.GetBytes(64);
+            var randomBytes =
+                RandomNumberGenerator.GetBytes(64);
 
             return Convert.ToBase64String(randomBytes);
         }

@@ -1,5 +1,6 @@
 using DeveloperProjectTracker.API.Configuration;
 using DeveloperProjectTracker.API.Data;
+using DeveloperProjectTracker.API.Data.Seed;
 using DeveloperProjectTracker.API.Services.Auth;
 using DeveloperProjectTrackerDomain.Entities;
 using Microsoft.AspNetCore.Identity;
@@ -29,6 +30,15 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope()) 
+{ 
+    var services = scope.ServiceProvider; 
+    var context = services.GetRequiredService<ApplicationDbContext>(); 
+    var passwordHasher = services.GetRequiredService<IPasswordHasher<User>>();
+    var configuration = services.GetRequiredService<IConfiguration>(); 
+    await SuperAdminSeeder.SeedAsync(context, passwordHasher, configuration); 
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

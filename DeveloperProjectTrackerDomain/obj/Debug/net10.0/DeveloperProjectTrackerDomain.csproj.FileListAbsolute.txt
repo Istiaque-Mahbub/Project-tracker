@@ -10,3 +10,4 @@ E:\C#\DeveloperProjectTracker.API\DeveloperProjectTrackerDomain\obj\Debug\net10.
 E:\C#\DeveloperProjectTracker.API\DeveloperProjectTrackerDomain\obj\Debug\net10.0\refint\DeveloperProjectTrackerDomain.dll
 E:\C#\DeveloperProjectTracker.API\DeveloperProjectTrackerDomain\obj\Debug\net10.0\DeveloperProjectTrackerDomain.pdb
 E:\C#\DeveloperProjectTracker.API\DeveloperProjectTrackerDomain\obj\Debug\net10.0\ref\DeveloperProjectTrackerDomain.dll
+E:\C#\DeveloperProjectTracker.API\DeveloperProjectTrackerDomain\obj\Debug\net10.0\Develope.45154591.Up2Date

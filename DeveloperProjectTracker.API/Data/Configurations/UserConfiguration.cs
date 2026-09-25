@@ -89,6 +89,12 @@ namespace DeveloperProjectTracker.API.Data.Configurations
                 .HasForeignKey(a => a.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // User -> Tenant Memberships
+            builder.HasMany(u => u.TenantMemberships)
+                .WithOne(tm => tm.User)
+                .HasForeignKey(tm => tm.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
         }
     }
 }

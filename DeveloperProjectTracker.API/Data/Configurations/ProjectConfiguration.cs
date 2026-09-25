@@ -28,6 +28,10 @@ namespace DeveloperProjectTracker.API.Data.Configurations
             builder.Property(p => p.OwnerId).
                 IsRequired();
 
+            // Tenant
+            builder.Property(p => p.TenantId)
+                .IsRequired();
+
             //Dates
             builder.Property(p => p.CreateAt).
                 HasColumnType("timestamp with time zone").
@@ -41,6 +45,12 @@ namespace DeveloperProjectTracker.API.Data.Configurations
                 WithMany(u => u.OwnedProjects).
                 HasForeignKey(p => p.OwnerId).
                 OnDelete(DeleteBehavior.Restrict);
+
+            // Tenant relationship
+            builder.HasOne(p => p.Tenant)
+                .WithMany(t => t.Projects)
+                .HasForeignKey(p => p.TenantId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             //members relationship
             builder.HasMany(p => p.Members).
