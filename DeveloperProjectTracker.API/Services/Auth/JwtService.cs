@@ -28,12 +28,15 @@ namespace DeveloperProjectTracker.API.Services.Auth
             {
                 new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new(JwtRegisteredClaimNames.Email, user.Email),
-                new(ClaimTypes.NameIdentifier, user.FullName),
+
+                new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new(ClaimTypes.Name, user.FullName),
+
+                // Global application role
                 new(ClaimTypes.Role, user.Role.ToString())
             };
 
-            // Add tenant information when the user
-            // is accessing a specific tenant.
+            // Current tenant
             if (tenantId.HasValue)
             {
                 claims.Add(
@@ -42,6 +45,7 @@ namespace DeveloperProjectTracker.API.Services.Auth
                         tenantId.Value.ToString()));
             }
 
+            // Role inside current tenant
             if (tenantRole.HasValue)
             {
                 claims.Add(

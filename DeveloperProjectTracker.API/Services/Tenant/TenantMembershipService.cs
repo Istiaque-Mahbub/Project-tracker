@@ -17,12 +17,9 @@ namespace DeveloperProjectTracker.API.Services.Tenant
         }
 
         public async Task<TenantMemberResponseDto> AddMemberAsync(
-           Guid tenantId,
-           AddTenantMemberRequestDto request)
+            Guid tenantId,
+            AddTenantMemberRequestDto request)
         {
-            var email = request.Email.Trim().ToLowerInvariant();
-
-            // Check tenant
             var tenant = await _context.Tenants
                 .FirstOrDefaultAsync(t => t.Id == tenantId);
 
@@ -38,34 +35,26 @@ namespace DeveloperProjectTracker.API.Services.Tenant
                     "Tenant is inactive.");
             }
 
-            // Find user
+            var email = request.Email.Trim().ToLowerInvariant();
+
             var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Email == email);
 
             if (user is null)
             {
                 throw new KeyNotFoundException(
-                    "User with this email does not exist.");
+                    "User not found.");
             }
 
-            // Check existing membership
-            var existingMembership =
-                await _context.TenantMemberships
-                    .FirstOrDefaultAsync(x =>
-                        x.TenantId == tenantId &&
-                        x.UserId == user.Id);
+            var alreadyMember = await _context.TenantMemberships
+                .AnyAsync(x =>
+                    x.TenantId == tenantId &&
+                    x.UserId == user.Id);
 
-            if (existingMembership is not null)
+            if (alreadyMember)
             {
                 throw new InvalidOperationException(
                     "User is already a member of this tenant.");
-            }
-
-            // Prevent assigning invalid tenant role
-            if (!Enum.IsDefined(typeof(TenantRole), request.Role))
-            {
-                throw new ArgumentException(
-                    "Invalid tenant role.");
             }
 
             var membership = new TenantMembership
@@ -91,8 +80,9 @@ namespace DeveloperProjectTracker.API.Services.Tenant
             };
         }
 
+
         public async Task<List<TenantMemberResponseDto>> GetMembersAsync(
-           Guid tenantId)
+            Guid tenantId)
         {
             var tenantExists = await _context.Tenants
                 .AnyAsync(t => t.Id == tenantId);
@@ -104,6 +94,7 @@ namespace DeveloperProjectTracker.API.Services.Tenant
             }
 
             return await _context.TenantMemberships
+                .AsNoTracking()
                 .Where(x => x.TenantId == tenantId)
                 .Include(x => x.User)
                 .OrderBy(x => x.User.FullName)
@@ -118,21 +109,22 @@ namespace DeveloperProjectTracker.API.Services.Tenant
                 .ToListAsync();
         }
 
+
         public async Task<TenantMemberResponseDto> GetMemberAsync(
             Guid tenantId,
             Guid userId)
         {
-            var membership =
-                await _context.TenantMemberships
-                    .Include(x => x.User)
-                    .FirstOrDefaultAsync(x =>
-                        x.TenantId == tenantId &&
-                        x.UserId == userId);
+            var membership = await _context.TenantMemberships
+                .AsNoTracking()
+                .Include(x => x.User)
+                .FirstOrDefaultAsync(x =>
+                    x.TenantId == tenantId &&
+                    x.UserId == userId);
 
             if (membership is null)
             {
                 throw new KeyNotFoundException(
-                    "User is not a member of this tenant.");
+                    "Tenant member not found.");
             }
 
             return new TenantMemberResponseDto
@@ -145,30 +137,22 @@ namespace DeveloperProjectTracker.API.Services.Tenant
             };
         }
 
+
         public async Task<TenantMemberResponseDto> UpdateRoleAsync(
             Guid tenantId,
             Guid userId,
             UpdateTenantMemberRoleRequestDto request)
         {
-            if (!Enum.IsDefined(
-                typeof(TenantRole),
-                request.Role))
-            {
-                throw new ArgumentException(
-                    "Invalid tenant role.");
-            }
-
-            var membership =
-                await _context.TenantMemberships
-                    .Include(x => x.User)
-                    .FirstOrDefaultAsync(x =>
-                        x.TenantId == tenantId &&
-                        x.UserId == userId);
+            var membership = await _context.TenantMemberships
+                .Include(x => x.User)
+                .FirstOrDefaultAsync(x =>
+                    x.TenantId == tenantId &&
+                    x.UserId == userId);
 
             if (membership is null)
             {
                 throw new KeyNotFoundException(
-                    "User is not a member of this tenant.");
+                    "Tenant member not found.");
             }
 
             membership.Role = request.Role;
@@ -185,20 +169,20 @@ namespace DeveloperProjectTracker.API.Services.Tenant
             };
         }
 
+
         public async Task RemoveMemberAsync(
             Guid tenantId,
             Guid userId)
         {
-            var membership =
-                await _context.TenantMemberships
-                    .FirstOrDefaultAsync(x =>
-                        x.TenantId == tenantId &&
-                        x.UserId == userId);
+            var membership = await _context.TenantMemberships
+                .FirstOrDefaultAsync(x =>
+                    x.TenantId == tenantId &&
+                    x.UserId == userId);
 
             if (membership is null)
             {
                 throw new KeyNotFoundException(
-                    "User is not a member of this tenant.");
+                    "Tenant member not found.");
             }
 
             _context.TenantMemberships.Remove(membership);

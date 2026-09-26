@@ -211,5 +211,150 @@
       }
     ],
     "ReturnTypes": []
+  },
+  {
+    "ContainingType": "DeveloperProjectTracker.API.Controllers.TenantMembershipController",
+    "Method": "AddMember",
+    "RelativePath": "api/tenants/{tenantId}/members",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "tenantId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "DeveloperProjectTracker.API.DTOs.Tenant.AddTenantMemberRequestDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "DeveloperProjectTracker.API.DTOs.Tenant.TenantMemberResponseDto",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "DeveloperProjectTracker.API.Controllers.TenantMembershipController",
+    "Method": "GetMembers",
+    "RelativePath": "api/tenants/{tenantId}/members",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "tenantId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.List\u00601[[DeveloperProjectTracker.API.DTOs.Tenant.TenantMemberResponseDto, DeveloperProjectTracker.API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "DeveloperProjectTracker.API.Controllers.TenantMembershipController",
+    "Method": "GetMember",
+    "RelativePath": "api/tenants/{tenantId}/members/{userId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "tenantId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "userId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "DeveloperProjectTracker.API.DTOs.Tenant.TenantMemberResponseDto",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "DeveloperProjectTracker.API.Controllers.TenantMembershipController",
+    "Method": "UpdateRole",
+    "RelativePath": "api/tenants/{tenantId}/members/{userId}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "tenantId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "userId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "DeveloperProjectTracker.API.DTOs.Tenant.UpdateTenantMemberRoleRequestDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "DeveloperProjectTracker.API.DTOs.Tenant.TenantMemberResponseDto",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "DeveloperProjectTracker.API.Controllers.TenantMembershipController",
+    "Method": "RemoveMember",
+    "RelativePath": "api/tenants/{tenantId}/members/{userId}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "tenantId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "userId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
   }
 ]

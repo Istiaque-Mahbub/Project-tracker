@@ -1,10 +1,13 @@
+using DeveloperProjectTracker.API.Authorization;
 using DeveloperProjectTracker.API.Configuration;
 using DeveloperProjectTracker.API.Data;
 using DeveloperProjectTracker.API.Data.Seed;
 using DeveloperProjectTracker.API.Services.Auth;
+using DeveloperProjectTracker.API.Services.Tenant;
 using DeveloperProjectTracker.API.Services.Tenants;
 using DeveloperProjectTrackerDomain.Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -13,37 +16,59 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Controllers
 builder.Services.AddControllers();
 
-
-// ======================================================
-// DATABASE
-// ======================================================
-
+// Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection")
     ));
 
-
-// ======================================================
-// JWT SETTINGS
-// ======================================================
-
+// JWT settings
 builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection("Jwt"));
 
+builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+builder.Services.AddScoped<IPasswordHasher<User>,
+    PasswordHasher<User>>();
+
+// Tenant
+builder.Services.AddScoped<ITenantService, TenantService>();
+
+builder.Services.AddScoped<
+    ITenantMembershipService,
+    TenantMembershipService>();
+
+builder.Services.AddScoped<
+    ITenantAuthorizationService,
+    TenantAuthorizationService>();
+
+builder.Services.AddControllers();
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("TenantAdmin", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new TenantAdminRequirement());
+    });
+});
+
+builder.Services.AddScoped<
+    IAuthorizationHandler,
+    TenantAdminHandler>();
+
+// =====================================================
+// JWT AUTHENTICATION
+// =====================================================
+
 var jwtSettings = builder.Configuration
     .GetSection("Jwt")
-    .Get<JwtSettings>()
-    ?? throw new InvalidOperationException(
-        "JWT settings are missing.");
-
-
-// ======================================================
-// JWT AUTHENTICATION
-// ======================================================
+    .Get<JwtSettings>();
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -56,7 +81,7 @@ builder.Services
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
 
-            ValidIssuer = jwtSettings.Issuer,
+            ValidIssuer = jwtSettings!.Issuer,
             ValidAudience = jwtSettings.Audience,
 
             IssuerSigningKey = new SymmetricSecurityKey(
@@ -67,47 +92,37 @@ builder.Services
 builder.Services.AddAuthorization();
 
 
-// ======================================================
-// AUTH SERVICES
-// ======================================================
-
-builder.Services.AddScoped<IJwtService, JwtService>();
-
-builder.Services.AddScoped<IAuthService, AuthService>();
-
-builder.Services.AddScoped<IPasswordHasher<User>,
-    PasswordHasher<User>>();
-
-
-// ======================================================
-// TENANT SERVICES
-// ======================================================
-
-builder.Services.AddScoped<ITenantService, TenantService>();
-
-
-// ======================================================
+// =====================================================
 // SWAGGER
-// ======================================================
+// =====================================================
 
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(options =>
 {
-    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    options.SwaggerDoc("v1", new OpenApiInfo
     {
-        Name = "Authorization",
+        Title = "DeveloperProjectTracker.API",
+        Version = "v1"
+    });
+
+    // Bearer JWT
+    options.AddSecurityDefinition("bearer", new OpenApiSecurityScheme
+    {
         Type = SecuritySchemeType.Http,
         Scheme = "bearer",
         BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "Enter your JWT access token."
+        Description =
+            "Enter your JWT token. Example: Bearer eyJhbGciOi..."
     });
 
+    // .NET 10 / Swashbuckle 10 syntax
     options.AddSecurityRequirement(document =>
         new OpenApiSecurityRequirement
         {
-            [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+            [new OpenApiSecuritySchemeReference(
+                "bearer",
+                document)] = []
         });
 });
 
@@ -115,9 +130,9 @@ builder.Services.AddSwaggerGen(options =>
 var app = builder.Build();
 
 
-// ======================================================
+// =====================================================
 // SUPER ADMIN SEEDER
-// ======================================================
+// =====================================================
 
 using (var scope = app.Services.CreateScope())
 {
@@ -139,22 +154,17 @@ using (var scope = app.Services.CreateScope())
 }
 
 
-// ======================================================
+// =====================================================
 // HTTP PIPELINE
-// ======================================================
+// =====================================================
 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-
     app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
-
-
-// IMPORTANT:
-// Authentication MUST come before Authorization.
 
 app.UseAuthentication();
 

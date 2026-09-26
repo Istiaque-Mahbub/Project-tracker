@@ -1,7 +1,7 @@
 ﻿using DeveloperProjectTracker.API.Data;
 using DeveloperProjectTracker.API.DTOs.Tenant;
-using DeveloperProjectTrackerDomain.Entities;
 using Microsoft.EntityFrameworkCore;
+using TenantEntity = DeveloperProjectTrackerDomain.Entities.Tenant;
 
 
 
@@ -43,7 +43,7 @@ namespace DeveloperProjectTracker.API.Services.Tenants
                     "A tenant with this slug already exists.");
             }
 
-            var tenant = new Tenant
+            var tenant = new TenantEntity
             {
                 Id = Guid.NewGuid(),
                 Name = name,
@@ -174,7 +174,7 @@ namespace DeveloperProjectTracker.API.Services.Tenants
         }
 
         private static TenantResponseDto MapToResponse(
-          Tenant tenant)
+          TenantEntity tenant)
         {
             return new TenantResponseDto
             {
