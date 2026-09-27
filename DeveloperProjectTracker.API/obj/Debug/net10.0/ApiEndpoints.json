@@ -356,5 +356,93 @@
       }
     ],
     "ReturnTypes": []
+  },
+  {
+    "ContainingType": "DeveloperProjectTracker.API.Controllers.ProjectController",
+    "Method": "Create",
+    "RelativePath": "api/tenants/{tenantId}/projects",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "tenantId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "DeveloperProjectTracker.API.DTOs.Projects.CreateProjectRequestDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "DeveloperProjectTracker.API.DTOs.Projects.ProjectResponseDto",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "DeveloperProjectTracker.API.Controllers.ProjectController",
+    "Method": "GetAll",
+    "RelativePath": "api/tenants/{tenantId}/projects",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "tenantId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.List\u00601[[DeveloperProjectTracker.API.DTOs.Projects.ProjectResponseDto, DeveloperProjectTracker.API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "DeveloperProjectTracker.API.Controllers.ProjectController",
+    "Method": "GetById",
+    "RelativePath": "api/tenants/{tenantId}/projects/{projectId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "tenantId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "projectId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "DeveloperProjectTracker.API.DTOs.Projects.ProjectResponseDto",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
   }
 ]
