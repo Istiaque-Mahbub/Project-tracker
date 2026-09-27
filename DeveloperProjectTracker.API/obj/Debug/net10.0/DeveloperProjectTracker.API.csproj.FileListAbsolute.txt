@@ -135,3 +135,4 @@ E:\C#\DeveloperProjectTracker.API\DeveloperProjectTracker.API\bin\Debug\net10.0\
 E:\C#\DeveloperProjectTracker.API\DeveloperProjectTracker.API\bin\Debug\net10.0\DeveloperProjectTracker.API.pdb
 E:\C#\DeveloperProjectTracker.API\DeveloperProjectTracker.API\obj\Debug\net10.0\DeveloperProjectTracker.API.genruntimeconfig.cache
 E:\C#\DeveloperProjectTracker.API\DeveloperProjectTracker.API\obj\Debug\net10.0\ref\DeveloperProjectTracker.API.dll
+E:\C#\DeveloperProjectTracker.API\DeveloperProjectTracker.API\obj\Debug\net10.0\staticwebassets.upToDateCheck.txt
