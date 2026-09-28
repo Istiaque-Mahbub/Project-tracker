@@ -78,6 +78,32 @@
     ]
   },
   {
+    "ContainingType": "DeveloperProjectTracker.API.Controllers.AuthController",
+    "Method": "SelectTenant",
+    "RelativePath": "api/Auth/select-tenant",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "DeveloperProjectTracker.API.DTOs.Auth.SelectTenantRequestDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "DeveloperProjectTracker.API.DTOs.Auth.AuthResponseDto",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
     "ContainingType": "DeveloperProjectTracker.API.Controllers.TenantController",
     "Method": "Create",
     "RelativePath": "api/Tenant",

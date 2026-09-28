@@ -277,6 +277,12 @@ namespace DeveloperProjectTracker.API.Migrations
                     b.Property<DateTime?>("RevokedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("TenantRole")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Token")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -286,6 +292,8 @@ namespace DeveloperProjectTracker.API.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("Token")
                         .IsUnique();
@@ -617,11 +625,18 @@ namespace DeveloperProjectTracker.API.Migrations
 
             modelBuilder.Entity("DeveloperProjectTrackerDomain.Entities.RefreshToken", b =>
                 {
+                    b.HasOne("DeveloperProjectTrackerDomain.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("DeveloperProjectTrackerDomain.Entities.User", "User")
                         .WithMany("RefreshTokens")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Tenant");
 
                     b.Navigation("User");
                 });

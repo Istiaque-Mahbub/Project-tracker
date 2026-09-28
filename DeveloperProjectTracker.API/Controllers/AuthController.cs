@@ -1,6 +1,8 @@
 ﻿using DeveloperProjectTracker.API.DTOs.Auth;
 using DeveloperProjectTracker.API.Services.Auth;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace DeveloperProjectTracker.API.Controllers
 {
@@ -72,6 +74,62 @@ namespace DeveloperProjectTracker.API.Controllers
                 });
             }
 
+        }
+
+        [HttpPost("select-tenant")]
+        [Authorize]
+        public async Task<ActionResult<AuthResponseDto>> SelectTenant(
+    SelectTenantRequestDto request)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(
+                    ClaimTypes.NameIdentifier)?.Value;
+
+                if (!Guid.TryParse(userIdClaim, out var userId))
+                {
+                    return Unauthorized(new
+                    {
+                        message = "Unable to identify the current user."
+                    });
+                }
+
+                var response = await _authService.SelectTenantAsync(
+                    userId,
+                    request.TenantId);
+
+                return Ok(response);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message = "An unexpected error occurred."
+                    });
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using DeveloperProjectTracker.API.Data;
 using DeveloperProjectTracker.API.DTOs.Auth;
+using DeveloperProjectTracker.API.DTOs.Tenant;
 using DeveloperProjectTrackerDomain.Entities;
 using DeveloperProjectTrackerDomain.Enums;
 using Microsoft.AspNetCore.Identity;
@@ -26,6 +27,10 @@ namespace DeveloperProjectTracker.API.Services.Auth
             _configuration = configuration;
         }
 
+        // =========================================================
+        // REGISTER
+        // =========================================================
+
         public async Task<AuthResponseDto> RegisterAsync(
             RegisterRequestDto request)
         {
@@ -45,7 +50,10 @@ namespace DeveloperProjectTracker.API.Services.Auth
                 Id = Guid.NewGuid(),
                 FullName = request.FullName.Trim(),
                 Email = email,
+
+                // Global application role
                 Role = UserRole.Developer,
+
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -60,8 +68,13 @@ namespace DeveloperProjectTracker.API.Services.Auth
             return await CreateAuthResponseAsync(user);
         }
 
+
+        // =========================================================
+        // LOGIN
+        // =========================================================
+
         public async Task<AuthResponseDto> LoginAsync(
-            LoginRequestDto request)
+     LoginRequestDto request)
         {
             var email = request.Email.Trim().ToLowerInvariant();
 
@@ -89,6 +102,11 @@ namespace DeveloperProjectTracker.API.Services.Auth
             return await CreateAuthResponseAsync(user);
         }
 
+
+        // =========================================================
+        // REFRESH TOKEN
+        // =========================================================
+
         public async Task<AuthResponseDto> RefreshTokenAsync(
             RefreshTokenRequestDto request)
         {
@@ -115,12 +133,44 @@ namespace DeveloperProjectTracker.API.Services.Auth
                     "Refresh token has expired.");
             }
 
-            // Revoke the old refresh token
+
+            // =====================================================
+            // FIND CURRENT TENANT MEMBERSHIP
+            // =====================================================
+
+            Guid? tenantId = null;
+            TenantRole? tenantRole = null;
+
+            if (storedToken.User.Role != UserRole.SuperAdmin)
+            {
+                var memberships = await _context.TenantMemberships
+                    .Where(x => x.UserId == storedToken.UserId)
+                    .ToListAsync();
+
+                if (memberships.Count == 1)
+                {
+                    tenantId = memberships[0].TenantId;
+                    tenantRole = memberships[0].Role;
+                }
+            }
+
+
+            // =====================================================
+            // REVOKE OLD REFRESH TOKEN
+            // =====================================================
+
             storedToken.RevokedAt = DateTime.UtcNow;
 
-            // Generate new tokens
+
+            // =====================================================
+            // GENERATE NEW TOKENS
+            // =====================================================
+
             var newAccessToken =
-                _jwtService.GenerateAccessToken(storedToken.User);
+                _jwtService.GenerateAccessToken(
+                    storedToken.User,
+                    tenantId,
+                    tenantRole);
 
             var newRefreshToken =
                 _jwtService.GenerateRefreshToken();
@@ -129,38 +179,56 @@ namespace DeveloperProjectTracker.API.Services.Auth
                 _configuration.GetValue<int>(
                     "Jwt:RefreshTokenExpirationDays");
 
+
             var newStoredToken = new RefreshToken
             {
                 Id = Guid.NewGuid(),
                 UserId = storedToken.UserId,
                 Token = newRefreshToken,
                 CreatedAt = DateTime.UtcNow,
-                ExpiresAt = DateTime.UtcNow.AddDays(refreshTokenDays)
+                ExpiresAt = DateTime.UtcNow.AddDays(
+                    refreshTokenDays)
             };
 
             _context.RefreshTokens.Add(newStoredToken);
 
             await _context.SaveChangesAsync();
 
+
             return new AuthResponseDto
             {
                 UserId = storedToken.User.Id,
                 FullName = storedToken.User.FullName,
                 Email = storedToken.User.Email,
+
                 Role = storedToken.User.Role.ToString(),
+
                 AccessToken = newAccessToken,
+
                 RefreshToken = newRefreshToken,
-                AccessTokenExpiresAt = DateTime.UtcNow.AddMinutes(
-                    _configuration.GetValue<int>(
-                        "Jwt:AccessTokenExpirationMinutes"))
+
+                AccessTokenExpiresAt =
+                    DateTime.UtcNow.AddMinutes(
+                        _configuration.GetValue<int>(
+                            "Jwt:AccessTokenExpirationMinutes"))
             };
         }
 
+
+        // =========================================================
+        // CREATE AUTH RESPONSE
+        // =========================================================
+
         private async Task<AuthResponseDto> CreateAuthResponseAsync(
-            User user)
+    User user,
+    Guid? tenantId = null,
+    TenantRole? tenantRole = null)
         {
             var accessToken =
-                _jwtService.GenerateAccessToken(user);
+                _jwtService.GenerateAccessToken(
+                    user,
+                    tenantId,
+                    tenantRole);
 
             var refreshToken =
                 _jwtService.GenerateRefreshToken();
@@ -180,6 +248,21 @@ namespace DeveloperProjectTracker.API.Services.Auth
 
             _context.RefreshTokens.Add(refreshTokenEntity);
 
+            // Get all tenants belonging to this user
+            var tenants = await _context.TenantMemberships
+                .Include(x => x.Tenant)
+                .Where(x => x.UserId == user.Id)
+                .OrderBy(x => x.Tenant.Name)
+                .Select(x => new MyTenantResponseDto
+                {
+                    Id = x.TenantId,
+                    Name = x.Tenant.Name,
+                    Slug = x.Tenant.Slug,
+                    Role = x.Role.ToString(),
+                    IsActive = x.Tenant.IsActive
+                })
+                .ToListAsync();
+
             await _context.SaveChangesAsync();
 
             return new AuthResponseDto
@@ -188,11 +271,70 @@ namespace DeveloperProjectTracker.API.Services.Auth
                 FullName = user.FullName,
                 Email = user.Email,
                 Role = user.Role.ToString(),
+
                 AccessToken = accessToken,
                 RefreshToken = refreshToken,
-                AccessTokenExpiresAt = DateTime.UtcNow.AddMinutes(
-                    _configuration.GetValue<int>(
-                        "Jwt:AccessTokenExpirationMinutes"))
+
+                AccessTokenExpiresAt =
+                    DateTime.UtcNow.AddMinutes(
+                        _configuration.GetValue<int>(
+                            "Jwt:AccessTokenExpirationMinutes")),
+
+                Tenants = tenants
+            };
+        }
+
+        public async Task<SelectTenantResponseDto> SelectTenantAsync(
+    Guid userId,
+    Guid tenantId)
+        {
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user is null)
+            {
+                throw new KeyNotFoundException(
+                    "User not found.");
+            }
+
+            var membership = await _context.TenantMemberships
+                .Include(x => x.Tenant)
+                .FirstOrDefaultAsync(x =>
+                    x.UserId == userId &&
+                    x.TenantId == tenantId);
+
+            if (membership is null)
+            {
+                throw new UnauthorizedAccessException(
+                    "You are not a member of this tenant.");
+            }
+
+            if (!membership.Tenant.IsActive)
+            {
+                throw new InvalidOperationException(
+                    "This tenant is inactive.");
+            }
+
+            // Generate a tenant-specific access token
+            var accessToken = _jwtService.GenerateAccessToken(
+                user,
+                membership.TenantId,
+                membership.Role);
+
+            return new SelectTenantResponseDto
+            {
+                TenantId = membership.TenantId,
+
+                TenantName = membership.Tenant.Name,
+
+                TenantRole = membership.Role.ToString(),
+
+                AccessToken = accessToken,
+
+                AccessTokenExpiresAt =
+                    DateTime.UtcNow.AddMinutes(
+                        _configuration.GetValue<int>(
+                            "Jwt:AccessTokenExpirationMinutes"))
             };
         }
     }

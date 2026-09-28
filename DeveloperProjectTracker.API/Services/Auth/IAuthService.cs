@@ -5,13 +5,16 @@ namespace DeveloperProjectTracker.API.Services.Auth
     public interface IAuthService
     {
         Task<AuthResponseDto> RegisterAsync(
-       RegisterRequestDto request);
+            RegisterRequestDto request);
 
         Task<AuthResponseDto> LoginAsync(
             LoginRequestDto request);
 
         Task<AuthResponseDto> RefreshTokenAsync(
             RefreshTokenRequestDto request);
-    
-}
+
+        Task<SelectTenantResponseDto> SelectTenantAsync(
+            Guid userId,
+            Guid tenantId);
+    }
 }

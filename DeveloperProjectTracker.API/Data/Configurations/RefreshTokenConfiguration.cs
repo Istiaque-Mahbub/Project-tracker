@@ -4,10 +4,11 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace DeveloperProjectTracker.API.Data.Configurations
 {
-    public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
+    public class RefreshTokenConfiguration
+        : IEntityTypeConfiguration<RefreshToken>
     {
         public void Configure(
-        EntityTypeBuilder<RefreshToken> builder)
+            EntityTypeBuilder<RefreshToken> builder)
         {
             builder.HasKey(x => x.Id);
 
@@ -24,10 +25,25 @@ namespace DeveloperProjectTracker.API.Data.Configurations
             builder.Property(x => x.CreatedAt)
                 .IsRequired();
 
+
+            // ==========================================
+            // USER
+            // ==========================================
+
             builder.HasOne(x => x.User)
                 .WithMany(x => x.RefreshTokens)
                 .HasForeignKey(x => x.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+
+            // ==========================================
+            // TENANT
+            // ==========================================
+
+            builder.HasOne(x => x.Tenant)
+                .WithMany()
+                .HasForeignKey(x => x.TenantId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }
