@@ -14,5 +14,14 @@ namespace DeveloperProjectTracker.API.Services.Projects
         Task<ProjectResponseDto> GetByIdAsync(
             Guid tenantId,
             Guid projectId);
+
+        Task<ProjectResponseDto> UpdateAsync(
+    Guid tenantId,
+    Guid projectId,
+    UpdateProjectRequestDto request);
+
+        Task DeleteAsync(
+            Guid tenantId,
+            Guid projectId);
     }
 }

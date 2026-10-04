@@ -4,11 +4,11 @@ namespace DeveloperProjectTracker.API.DTOs.Projects
 {
     public class UpdateProjectRequestDto
     {
-        [Required]
-        [MaxLength(150)]
         public string Name { get; set; } = string.Empty;
 
-        [MaxLength(1000)]
-        public string? Description { get; set; }
+        public string? Description
+        {
+            get; set;
+        }
     }
 }

@@ -138,5 +138,78 @@ namespace DeveloperProjectTracker.API.Controllers
             }
         }
 
+        [HttpPut("{projectId:guid}")]
+        [Authorize(Policy = "TenantAdmin")]
+        public async Task<ActionResult<ProjectResponseDto>> Update(
+    Guid tenantId,
+    Guid projectId,
+    UpdateProjectRequestDto request)
+        {
+            try
+            {
+                var project = await _projectService.UpdateAsync(
+                    tenantId,
+                    projectId,
+                    request);
+
+                return Ok(project);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message = "An unexpected error occurred."
+                    });
+            }
+        }
+
+        [HttpDelete("{projectId:guid}")]
+        [Authorize(Policy = "TenantAdmin")]
+        public async Task<IActionResult> Delete(
+    Guid tenantId,
+    Guid projectId)
+        {
+            try
+            {
+                await _projectService.DeleteAsync(
+                    tenantId,
+                    projectId);
+
+                return NoContent();
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message = "An unexpected error occurred."
+                    });
+            }
+        }
+
     }
 }

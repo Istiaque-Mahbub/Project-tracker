@@ -129,6 +129,57 @@ namespace DeveloperProjectTracker.API.Services.Projects
             return MapToResponse(project);
         }
 
+        public async Task<ProjectResponseDto> UpdateAsync(
+                     Guid tenantId,
+                     Guid projectId,
+                    UpdateProjectRequestDto request)
+        {
+            var project = await _context.Projects
+                .FirstOrDefaultAsync(p =>
+                    p.Id == projectId &&
+                    p.TenantId == tenantId);
+
+            if (project is null)
+            {
+                throw new KeyNotFoundException(
+                    "Project not found.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Name))
+            {
+                throw new ArgumentException(
+                    "Project name is required.");
+            }
+
+            project.Name = request.Name.Trim();
+            project.Description = request.Description?.Trim();
+            project.UpdateAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return MapToResponse(project);
+        }
+
+        public async Task DeleteAsync(
+    Guid tenantId,
+    Guid projectId)
+        {
+            var project = await _context.Projects
+                .FirstOrDefaultAsync(p =>
+                    p.Id == projectId &&
+                    p.TenantId == tenantId);
+
+            if (project is null)
+            {
+                throw new KeyNotFoundException(
+                    "Project not found.");
+            }
+
+            _context.Projects.Remove(project);
+
+            await _context.SaveChangesAsync();
+        }
+
         private static ProjectResponseDto MapToResponse(
             Project project)
         {
