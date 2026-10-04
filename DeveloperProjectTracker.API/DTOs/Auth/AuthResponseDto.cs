@@ -1,4 +1,6 @@
-﻿namespace DeveloperProjectTracker.API.DTOs.Auth
+﻿using DeveloperProjectTracker.API.DTOs.Tenant;
+
+namespace DeveloperProjectTracker.API.DTOs.Auth
 {
     public class AuthResponseDto
     {
@@ -10,5 +12,7 @@
         public string RefreshToken { get; set; } = string.Empty;
         public DateTime AccessTokenExpiresAt { get; set; }
 
+        public List<MyTenantResponseDto> Tenants { get; set; }
+            = new();
     }
 }

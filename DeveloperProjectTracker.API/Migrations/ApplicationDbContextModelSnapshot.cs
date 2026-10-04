@@ -218,12 +218,17 @@ namespace DeveloperProjectTracker.API.Migrations
                     b.Property<Guid>("OwnerId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime?>("UpdateAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
                     b.HasIndex("OwnerId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("Projects", (string)null);
                 });
@@ -272,6 +277,12 @@ namespace DeveloperProjectTracker.API.Migrations
                     b.Property<DateTime?>("RevokedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("TenantRole")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Token")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -281,6 +292,8 @@ namespace DeveloperProjectTracker.API.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("Token")
                         .IsUnique();
@@ -367,6 +380,65 @@ namespace DeveloperProjectTracker.API.Migrations
                     b.HasIndex("LabelId");
 
                     b.ToTable("TaskLabels", (string)null);
+                });
+
+            modelBuilder.Entity("DeveloperProjectTrackerDomain.Entities.Tenant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("Tenants");
+                });
+
+            modelBuilder.Entity("DeveloperProjectTrackerDomain.Entities.TenantMembership", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("JoinedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("TenantId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("TenantMemberships", (string)null);
                 });
 
             modelBuilder.Entity("DeveloperProjectTrackerDomain.Entities.User", b =>
@@ -521,7 +593,15 @@ namespace DeveloperProjectTracker.API.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("DeveloperProjectTrackerDomain.Entities.Tenant", "Tenant")
+                        .WithMany("Projects")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Owner");
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("DeveloperProjectTrackerDomain.Entities.ProjectMember", b =>
@@ -545,11 +625,18 @@ namespace DeveloperProjectTracker.API.Migrations
 
             modelBuilder.Entity("DeveloperProjectTrackerDomain.Entities.RefreshToken", b =>
                 {
+                    b.HasOne("DeveloperProjectTrackerDomain.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("DeveloperProjectTrackerDomain.Entities.User", "User")
                         .WithMany("RefreshTokens")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Tenant");
 
                     b.Navigation("User");
                 });
@@ -606,6 +693,25 @@ namespace DeveloperProjectTracker.API.Migrations
                     b.Navigation("Task");
                 });
 
+            modelBuilder.Entity("DeveloperProjectTrackerDomain.Entities.TenantMembership", b =>
+                {
+                    b.HasOne("DeveloperProjectTrackerDomain.Entities.Tenant", "Tenant")
+                        .WithMany("Memberships")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DeveloperProjectTrackerDomain.Entities.User", "User")
+                        .WithMany("TenantMemberships")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("DeveloperProjectTrackerDomain.Entities.WorkLog", b =>
                 {
                     b.HasOne("DeveloperProjectTrackerDomain.Entities.TaskItem", "Task")
@@ -657,6 +763,13 @@ namespace DeveloperProjectTracker.API.Migrations
                     b.Navigation("WorkLogs");
                 });
 
+            modelBuilder.Entity("DeveloperProjectTrackerDomain.Entities.Tenant", b =>
+                {
+                    b.Navigation("Memberships");
+
+                    b.Navigation("Projects");
+                });
+
             modelBuilder.Entity("DeveloperProjectTrackerDomain.Entities.User", b =>
                 {
                     b.Navigation("Activities");
@@ -674,6 +787,8 @@ namespace DeveloperProjectTracker.API.Migrations
                     b.Navigation("ProjectMemberships");
 
                     b.Navigation("RefreshTokens");
+
+                    b.Navigation("TenantMemberships");
 
                     b.Navigation("WorkLogs");
                 });

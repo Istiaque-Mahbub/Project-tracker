@@ -26,6 +26,10 @@ namespace DeveloperProjectTracker.API.Data
 
         public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
+        public DbSet<Tenant> Tenants { get; set; }
+
+        public DbSet<TenantMembership> TenantMemberships { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
