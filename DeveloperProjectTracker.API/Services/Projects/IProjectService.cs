@@ -20,7 +20,7 @@ namespace DeveloperProjectTracker.API.Services.Projects
     Guid projectId,
     UpdateProjectRequestDto request);
 
-        Task DeleteAsync(
+        System.Threading.Tasks.Task DeleteAsync(
             Guid tenantId,
             Guid projectId);
     }

@@ -141,7 +141,7 @@ namespace DeveloperProjectTracker.API.Services.Tenants
             return MapToResponse(tenant);
         }
 
-        public async Task ActivateAsync(Guid id)
+        public async System.Threading.Tasks.Task ActivateAsync(Guid id)
         {
             var tenant = await _context.Tenants
                 .FirstOrDefaultAsync(t => t.Id == id);
@@ -157,7 +157,7 @@ namespace DeveloperProjectTracker.API.Services.Tenants
             await _context.SaveChangesAsync();
         }
 
-        public async Task DeactivateAsync(Guid id)
+        public async System.Threading.Tasks.Task DeactivateAsync(Guid id)
         {
             var tenant = await _context.Tenants
                 .FirstOrDefaultAsync(t => t.Id == id);

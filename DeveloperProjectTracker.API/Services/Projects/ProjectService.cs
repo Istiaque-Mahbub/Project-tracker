@@ -160,7 +160,7 @@ namespace DeveloperProjectTracker.API.Services.Projects
             return MapToResponse(project);
         }
 
-        public async Task DeleteAsync(
+        public async System.Threading.Tasks.Task DeleteAsync(
     Guid tenantId,
     Guid projectId)
         {

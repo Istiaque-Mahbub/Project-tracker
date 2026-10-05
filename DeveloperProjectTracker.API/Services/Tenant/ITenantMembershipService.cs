@@ -20,7 +20,7 @@ namespace DeveloperProjectTracker.API.Services.Tenant
             Guid userId,
             UpdateTenantMemberRoleRequestDto request);
 
-        Task RemoveMemberAsync(
+       System.Threading.Tasks.Task RemoveMemberAsync(
             Guid tenantId,
             Guid userId);
     

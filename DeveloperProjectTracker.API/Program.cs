@@ -4,6 +4,7 @@ using DeveloperProjectTracker.API.Data;
 using DeveloperProjectTracker.API.Data.Seed;
 using DeveloperProjectTracker.API.Services.Auth;
 using DeveloperProjectTracker.API.Services.Projects;
+using DeveloperProjectTracker.API.Services.Task;
 using DeveloperProjectTracker.API.Services.Tenant;
 using DeveloperProjectTracker.API.Services.Tenants;
 using DeveloperProjectTrackerDomain.Entities;
@@ -68,6 +69,12 @@ builder.Services.AddScoped<
 
 //Project
 builder.Services.AddScoped<IProjectService, ProjectService>();
+
+//Task
+builder.Services.AddScoped<
+    ITaskService,
+    TaskService>();
+
 
 // =====================================================
 // JWT AUTHENTICATION
