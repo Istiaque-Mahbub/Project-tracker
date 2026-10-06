@@ -4,6 +4,7 @@ using DeveloperProjectTracker.API.Data;
 using DeveloperProjectTracker.API.Data.Seed;
 using DeveloperProjectTracker.API.Services.Auth;
 using DeveloperProjectTracker.API.Services.Comments;
+using DeveloperProjectTracker.API.Services.Labels;
 using DeveloperProjectTracker.API.Services.Milestones;
 using DeveloperProjectTracker.API.Services.ProjectMembers;
 using DeveloperProjectTracker.API.Services.Projects;
@@ -90,6 +91,11 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     ICommentService,
     CommentService>();
+
+//lables
+builder.Services.AddScoped<
+    ILabelService,
+    LabelService>();
 
 
 // =====================================================
