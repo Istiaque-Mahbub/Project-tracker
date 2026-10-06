@@ -1,16 +1,14 @@
 ﻿using DeveloperProjectTracker.API.Data;
 using DeveloperProjectTracker.API.DTOs.Tasks;
 using DeveloperProjectTrackerDomain.Entities;
-using DeveloperProjectTrackerDomain.Enums;
 using Microsoft.EntityFrameworkCore;
-
-
 
 namespace DeveloperProjectTracker.API.Services.Task
 {
     public class TaskService : ITaskService
     {
         private readonly ApplicationDbContext _context;
+
         public TaskService(ApplicationDbContext context)
         {
             _context = context;
@@ -26,7 +24,10 @@ namespace DeveloperProjectTracker.API.Services.Task
             Guid userId,
             CreateTaskRequestDto request)
         {
-            // Check tenant
+            // -----------------------------------------------------
+            // Validate tenant
+            // -----------------------------------------------------
+
             var tenantExists = await _context.Tenants
                 .AnyAsync(t =>
                     t.Id == tenantId &&
@@ -38,7 +39,10 @@ namespace DeveloperProjectTracker.API.Services.Task
                     "Tenant not found or inactive.");
             }
 
-            // Check project belongs to tenant
+            // -----------------------------------------------------
+            // Validate project
+            // -----------------------------------------------------
+
             var projectExists = await _context.Projects
                 .AnyAsync(p =>
                     p.Id == projectId &&
@@ -47,17 +51,23 @@ namespace DeveloperProjectTracker.API.Services.Task
             if (!projectExists)
             {
                 throw new KeyNotFoundException(
-                    "Project not found.");
+                    "Project not found in this tenant.");
             }
 
+            // -----------------------------------------------------
             // Validate title
+            // -----------------------------------------------------
+
             if (string.IsNullOrWhiteSpace(request.Title))
             {
                 throw new ArgumentException(
                     "Task title is required.");
             }
 
-            // Check creator exists
+            // -----------------------------------------------------
+            // Validate creator
+            // -----------------------------------------------------
+
             var creatorExists = await _context.Users
                 .AnyAsync(u => u.Id == userId);
 
@@ -67,23 +77,35 @@ namespace DeveloperProjectTracker.API.Services.Task
                     "User not found.");
             }
 
-            // Check assigned user
-            if (request.AssignedToId.HasValue)
-            {
-                var assignedUserIsMember =
-                    await _context.TenantMemberships
-                        .AnyAsync(x =>
-                            x.TenantId == tenantId &&
-                            x.UserId == request.AssignedToId.Value);
+            // -----------------------------------------------------
+            // Validate creator belongs to tenant
+            // -----------------------------------------------------
 
-                if (!assignedUserIsMember)
-                {
-                    throw new ArgumentException(
-                        "Assigned user is not a member of this tenant.");
-                }
+            var creatorIsTenantMember =
+                await _context.TenantMemberships
+                    .AnyAsync(x =>
+                        x.TenantId == tenantId &&
+                        x.UserId == userId);
+
+            if (!creatorIsTenantMember)
+            {
+                throw new UnauthorizedAccessException(
+                    "You are not a member of this tenant.");
             }
 
-            // Check milestone
+            // -----------------------------------------------------
+            // Validate assigned user
+            // -----------------------------------------------------
+
+            await ValidateAssignedUserAsync(
+                tenantId,
+                projectId,
+                request.AssignedToId);
+
+            // -----------------------------------------------------
+            // Validate milestone
+            // -----------------------------------------------------
+
             if (request.MilestoneId.HasValue)
             {
                 var milestoneExists =
@@ -99,6 +121,10 @@ namespace DeveloperProjectTracker.API.Services.Task
                 }
             }
 
+            // -----------------------------------------------------
+            // Create task
+            // -----------------------------------------------------
+
             var task = new TaskItem
             {
                 Id = Guid.NewGuid(),
@@ -113,7 +139,8 @@ namespace DeveloperProjectTracker.API.Services.Task
                 AssignedToId =
                     request.AssignedToId,
 
-                CreatedById = userId,
+                CreatedById =
+                    userId,
 
                 MilestoneId =
                     request.MilestoneId,
@@ -135,9 +162,11 @@ namespace DeveloperProjectTracker.API.Services.Task
 
             await _context.SaveChangesAsync();
 
-            return MapToResponse(task);
+            return await GetByIdAsync(
+                tenantId,
+                projectId,
+                task.Id);
         }
-
 
         // =========================================================
         // GET ALL TASKS
@@ -147,7 +176,10 @@ namespace DeveloperProjectTracker.API.Services.Task
             Guid tenantId,
             Guid projectId)
         {
-            // Check tenant
+            // -----------------------------------------------------
+            // Validate tenant
+            // -----------------------------------------------------
+
             var tenantExists = await _context.Tenants
                 .AnyAsync(t =>
                     t.Id == tenantId &&
@@ -159,7 +191,10 @@ namespace DeveloperProjectTracker.API.Services.Task
                     "Tenant not found or inactive.");
             }
 
-            // Check project belongs to tenant
+            // -----------------------------------------------------
+            // Validate project
+            // -----------------------------------------------------
+
             var projectExists = await _context.Projects
                 .AnyAsync(p =>
                     p.Id == projectId &&
@@ -168,15 +203,19 @@ namespace DeveloperProjectTracker.API.Services.Task
             if (!projectExists)
             {
                 throw new KeyNotFoundException(
-                    "Project not found.");
+                    "Project not found in this tenant.");
             }
+
+            // -----------------------------------------------------
+            // Get tasks
+            // -----------------------------------------------------
 
             return await _context.TaskItems
                 .AsNoTracking()
+                .Include(t => t.AssignedTo)
                 .Where(t =>
-                    t.ProjectId == projectId &&
-                    t.Project.TenantId == tenantId)
-                .OrderBy(t => t.CreatedAt)
+                    t.ProjectId == projectId)
+                .OrderByDescending(t => t.CreatedAt)
                 .Select(t => new TaskResponseDto
                 {
                     Id = t.Id,
@@ -188,6 +227,11 @@ namespace DeveloperProjectTracker.API.Services.Task
                     Description = t.Description,
 
                     AssignedToId = t.AssignedToId,
+
+                    AssignedToName =
+                        t.AssignedTo != null
+                            ? t.AssignedTo.FullName
+                            : null,
 
                     CreatedById = t.CreatedById,
 
@@ -206,7 +250,6 @@ namespace DeveloperProjectTracker.API.Services.Task
                 .ToListAsync();
         }
 
-
         // =========================================================
         // GET SINGLE TASK
         // =========================================================
@@ -216,8 +259,28 @@ namespace DeveloperProjectTracker.API.Services.Task
             Guid projectId,
             Guid taskId)
         {
+            // -----------------------------------------------------
+            // Validate tenant
+            // -----------------------------------------------------
+
+            var tenantExists = await _context.Tenants
+                .AnyAsync(t =>
+                    t.Id == tenantId &&
+                    t.IsActive);
+
+            if (!tenantExists)
+            {
+                throw new KeyNotFoundException(
+                    "Tenant not found or inactive.");
+            }
+
+            // -----------------------------------------------------
+            // Get task
+            // -----------------------------------------------------
+
             var task = await _context.TaskItems
                 .AsNoTracking()
+                .Include(t => t.AssignedTo)
                 .FirstOrDefaultAsync(t =>
                     t.Id == taskId &&
                     t.ProjectId == projectId &&
@@ -232,7 +295,6 @@ namespace DeveloperProjectTracker.API.Services.Task
             return MapToResponse(task);
         }
 
-
         // =========================================================
         // UPDATE TASK
         // =========================================================
@@ -243,11 +305,44 @@ namespace DeveloperProjectTracker.API.Services.Task
             Guid taskId,
             UpdateTaskRequestDto request)
         {
+            // -----------------------------------------------------
+            // Validate tenant
+            // -----------------------------------------------------
+
+            var tenantExists = await _context.Tenants
+                .AnyAsync(t =>
+                    t.Id == tenantId &&
+                    t.IsActive);
+
+            if (!tenantExists)
+            {
+                throw new KeyNotFoundException(
+                    "Tenant not found or inactive.");
+            }
+
+            // -----------------------------------------------------
+            // Validate project
+            // -----------------------------------------------------
+
+            var projectExists = await _context.Projects
+                .AnyAsync(p =>
+                    p.Id == projectId &&
+                    p.TenantId == tenantId);
+
+            if (!projectExists)
+            {
+                throw new KeyNotFoundException(
+                    "Project not found in this tenant.");
+            }
+
+            // -----------------------------------------------------
+            // Find task
+            // -----------------------------------------------------
+
             var task = await _context.TaskItems
                 .FirstOrDefaultAsync(t =>
                     t.Id == taskId &&
-                    t.ProjectId == projectId &&
-                    t.Project.TenantId == tenantId);
+                    t.ProjectId == projectId);
 
             if (task is null)
             {
@@ -255,29 +350,29 @@ namespace DeveloperProjectTracker.API.Services.Task
                     "Task not found.");
             }
 
+            // -----------------------------------------------------
+            // Validate title
+            // -----------------------------------------------------
+
             if (string.IsNullOrWhiteSpace(request.Title))
             {
                 throw new ArgumentException(
                     "Task title is required.");
             }
 
+            // -----------------------------------------------------
             // Validate assigned user
-            if (request.AssignedToId.HasValue)
-            {
-                var assignedUserIsMember =
-                    await _context.TenantMemberships
-                        .AnyAsync(x =>
-                            x.TenantId == tenantId &&
-                            x.UserId == request.AssignedToId.Value);
+            // -----------------------------------------------------
 
-                if (!assignedUserIsMember)
-                {
-                    throw new ArgumentException(
-                        "Assigned user is not a member of this tenant.");
-                }
-            }
+            await ValidateAssignedUserAsync(
+                tenantId,
+                projectId,
+                request.AssignedToId);
 
+            // -----------------------------------------------------
             // Validate milestone
+            // -----------------------------------------------------
+
             if (request.MilestoneId.HasValue)
             {
                 var milestoneExists =
@@ -292,6 +387,10 @@ namespace DeveloperProjectTracker.API.Services.Task
                         "Milestone does not belong to this project.");
                 }
             }
+
+            // -----------------------------------------------------
+            // Update
+            // -----------------------------------------------------
 
             task.Title =
                 request.Title.Trim();
@@ -319,9 +418,11 @@ namespace DeveloperProjectTracker.API.Services.Task
 
             await _context.SaveChangesAsync();
 
-            return MapToResponse(task);
+            return await GetByIdAsync(
+                tenantId,
+                projectId,
+                taskId);
         }
-
 
         // =========================================================
         // DELETE TASK
@@ -332,82 +433,9 @@ namespace DeveloperProjectTracker.API.Services.Task
             Guid projectId,
             Guid taskId)
         {
-            var task = await _context.TaskItems
-                .FirstOrDefaultAsync(t =>
-                    t.Id == taskId &&
-                    t.ProjectId == projectId &&
-                    t.Project.TenantId == tenantId);
-
-            if (task is null)
-            {
-                throw new KeyNotFoundException(
-                    "Task not found.");
-            }
-
-            _context.TaskItems.Remove(task);
-
-            await _context.SaveChangesAsync();
-        }
-
-
-        // =========================================================
-        // MAPPING
-        // =========================================================
-
-        private static TaskResponseDto MapToResponse(
-            TaskItem task)
-        {
-            return new TaskResponseDto
-            {
-                Id = task.Id,
-
-                ProjectId =
-                    task.ProjectId,
-
-                Title =
-                    task.Title,
-
-                Description =
-                    task.Description,
-
-                AssignedToId =
-                    task.AssignedToId,
-
-                CreatedById =
-                    task.CreatedById,
-
-                MilestoneId =
-                    task.MilestoneId,
-
-                Priority =
-                    task.Priority,
-
-                Status =
-                    task.Status,
-
-                DueDate =
-                    task.DueDate,
-
-                CreatedAt =
-                    task.CreatedAt,
-
-                UpdatedAt =
-                    task.UpdatedAt,
-               
-                AssignedToName =
-                    task.AssignedTo?.FullName,
-            };
-        }
-
-        public async Task<TaskResponseDto> AssignAsync(
-    Guid tenantId,
-    Guid projectId,
-    Guid taskId,
-    AssignTaskRequestDto request)
-        {
-            // =========================================================
-            // 1. Check tenant
-            // =========================================================
+            // -----------------------------------------------------
+            // Validate tenant
+            // -----------------------------------------------------
 
             var tenantExists = await _context.Tenants
                 .AnyAsync(t =>
@@ -420,10 +448,59 @@ namespace DeveloperProjectTracker.API.Services.Task
                     "Tenant not found or inactive.");
             }
 
+            // -----------------------------------------------------
+            // Find task
+            // -----------------------------------------------------
 
-            // =========================================================
-            // 2. Check project
-            // =========================================================
+            var task = await _context.TaskItems
+                .FirstOrDefaultAsync(t =>
+                    t.Id == taskId &&
+                    t.ProjectId == projectId &&
+                    t.Project.TenantId == tenantId);
+
+            if (task is null)
+            {
+                throw new KeyNotFoundException(
+                    "Task not found.");
+            }
+
+            // -----------------------------------------------------
+            // Delete
+            // -----------------------------------------------------
+
+            _context.TaskItems.Remove(task);
+
+            await _context.SaveChangesAsync();
+        }
+
+        // =========================================================
+        // ASSIGN TASK
+        // =========================================================
+
+        public async Task<TaskResponseDto> AssignAsync(
+            Guid tenantId,
+            Guid projectId,
+            Guid taskId,
+            AssignTaskRequestDto request)
+        {
+            // -----------------------------------------------------
+            // Validate tenant
+            // -----------------------------------------------------
+
+            var tenantExists = await _context.Tenants
+                .AnyAsync(t =>
+                    t.Id == tenantId &&
+                    t.IsActive);
+
+            if (!tenantExists)
+            {
+                throw new KeyNotFoundException(
+                    "Tenant not found or inactive.");
+            }
+
+            // -----------------------------------------------------
+            // Validate project
+            // -----------------------------------------------------
 
             var projectExists = await _context.Projects
                 .AnyAsync(p =>
@@ -436,13 +513,11 @@ namespace DeveloperProjectTracker.API.Services.Task
                     "Project not found in this tenant.");
             }
 
-
-            // =========================================================
-            // 3. Find task
-            // =========================================================
+            // -----------------------------------------------------
+            // Find task
+            // -----------------------------------------------------
 
             var task = await _context.TaskItems
-                .Include(t => t.AssignedTo)
                 .FirstOrDefaultAsync(t =>
                     t.Id == taskId &&
                     t.ProjectId == projectId);
@@ -453,66 +528,136 @@ namespace DeveloperProjectTracker.API.Services.Task
                     "Task not found.");
             }
 
+            // -----------------------------------------------------
+            // Validate assigned user
+            // -----------------------------------------------------
 
-            // =========================================================
-            // 4. Check user
-            // =========================================================
+            await ValidateAssignedUserAsync(
+                tenantId,
+                projectId,
+                request.AssignedToId);
+
+            // -----------------------------------------------------
+            // Assign task
+            // -----------------------------------------------------
+
+            task.AssignedToId =
+                request.AssignedToId;
+
+            task.UpdatedAt =
+                DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return await GetByIdAsync(
+                tenantId,
+                projectId,
+                taskId);
+        }
+
+        // =========================================================
+        // VALIDATE ASSIGNED USER
+        // =========================================================
+
+        private async System.Threading.Tasks.Task ValidateAssignedUserAsync(
+            Guid tenantId,
+            Guid projectId,
+            Guid? assignedToId)
+        {
+            // -----------------------------------------------------
+            // Null means unassigned
+            // -----------------------------------------------------
+
+            if (!assignedToId.HasValue)
+            {
+                return;
+            }
+
+            // -----------------------------------------------------
+            // User exists
+            // -----------------------------------------------------
 
             var userExists = await _context.Users
-                .AnyAsync(u => u.Id == request.UserId);
+                .AnyAsync(u =>
+                    u.Id == assignedToId.Value);
 
             if (!userExists)
             {
                 throw new KeyNotFoundException(
-                    "User not found.");
+                    "Assigned user not found.");
             }
 
+            // -----------------------------------------------------
+            // User belongs to tenant
+            // -----------------------------------------------------
 
-            // =========================================================
-            // 5. Check tenant membership
-            // =========================================================
+            var tenantMember =
+                await _context.TenantMemberships
+                    .AnyAsync(x =>
+                        x.TenantId == tenantId &&
+                        x.UserId == assignedToId.Value);
 
-            var membership = await _context.TenantMemberships
-                .FirstOrDefaultAsync(x =>
-                    x.TenantId == tenantId &&
-                    x.UserId == request.UserId);
-
-            if (membership is null)
+            if (!tenantMember)
             {
-                throw new InvalidOperationException(
-                    "The user is not a member of this tenant.");
+                throw new ArgumentException(
+                    "Assigned user is not a member of this tenant.");
             }
 
+            // -----------------------------------------------------
+            // User belongs to project
+            // -----------------------------------------------------
 
-            // =========================================================
-            // 6. Only Developer can be assigned
-            // =========================================================
+            var projectMember =
+                await _context.ProjectMembers
+                    .AnyAsync(x =>
+                        x.ProjectId == projectId &&
+                        x.UserId == assignedToId.Value);
 
-            if (membership.Role != TenantRole.Developer)
+            if (!projectMember)
             {
-                throw new InvalidOperationException(
-                    "Only a tenant developer can be assigned to a task.");
+                throw new ArgumentException(
+                    "Assigned user is not a member of this project.");
             }
+        }
 
+        // =========================================================
+        // MAP RESPONSE
+        // =========================================================
 
-            // =========================================================
-            // 7. Assign
-            // =========================================================
+        private static TaskResponseDto MapToResponse(
+            TaskItem task)
+        {
+            return new TaskResponseDto
+            {
+                Id = task.Id,
 
-            task.AssignedToId = request.UserId;
-            task.AssignedTo = await _context.Users
-                .FirstAsync(u => u.Id == request.UserId);
+                ProjectId = task.ProjectId,
 
-            task.UpdatedAt = DateTime.UtcNow;
+                Title = task.Title,
 
-            await _context.SaveChangesAsync();
+                Description = task.Description,
 
+                AssignedToId = task.AssignedToId,
 
-            // =========================================================
-            // 8. Response
-            // =========================================================
+                AssignedToName =
+                    task.AssignedTo != null
+                        ? task.AssignedTo.FullName
+                        : null,
 
-            return MapToResponse(task);
+                CreatedById = task.CreatedById,
+
+                MilestoneId = task.MilestoneId,
+
+                Priority = task.Priority,
+
+                Status = task.Status,
+
+                DueDate = task.DueDate,
+
+                CreatedAt = task.CreatedAt,
+
+                UpdatedAt = task.UpdatedAt
+            };
         }
     }
 }

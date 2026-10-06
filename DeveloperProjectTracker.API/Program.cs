@@ -3,6 +3,7 @@ using DeveloperProjectTracker.API.Configuration;
 using DeveloperProjectTracker.API.Data;
 using DeveloperProjectTracker.API.Data.Seed;
 using DeveloperProjectTracker.API.Services.Auth;
+using DeveloperProjectTracker.API.Services.ProjectMembers;
 using DeveloperProjectTracker.API.Services.Projects;
 using DeveloperProjectTracker.API.Services.Task;
 using DeveloperProjectTracker.API.Services.Tenant;
@@ -74,6 +75,9 @@ builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<
     ITaskService,
     TaskService>();
+
+//project membership
+builder.Services.AddScoped<IProjectMemberService, ProjectMemberService>();
 
 
 // =====================================================

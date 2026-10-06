@@ -2,6 +2,7 @@
 {
     public class AssignTaskRequestDto
     {
-        public Guid UserId { get; set; }
+        public Guid? AssignedToId { get; set; }
+
     }
 }
