@@ -29,5 +29,11 @@ namespace DeveloperProjectTracker.API.Services.Task
             Guid tenantId,
             Guid projectId,
             Guid taskId);
+
+       Task<TaskResponseDto> AssignAsync(
+    Guid tenantId,
+    Guid projectId,
+    Guid taskId,
+    AssignTaskRequestDto request);
     }
 }

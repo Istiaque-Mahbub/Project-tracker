@@ -1,6 +1,7 @@
 ﻿using DeveloperProjectTracker.API.Data;
 using DeveloperProjectTracker.API.DTOs.Tasks;
 using DeveloperProjectTrackerDomain.Entities;
+using DeveloperProjectTrackerDomain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 
@@ -391,8 +392,127 @@ namespace DeveloperProjectTracker.API.Services.Task
                     task.CreatedAt,
 
                 UpdatedAt =
-                    task.UpdatedAt
+                    task.UpdatedAt,
+               
+                AssignedToName =
+                    task.AssignedTo?.FullName,
             };
+        }
+
+        public async Task<TaskResponseDto> AssignAsync(
+    Guid tenantId,
+    Guid projectId,
+    Guid taskId,
+    AssignTaskRequestDto request)
+        {
+            // =========================================================
+            // 1. Check tenant
+            // =========================================================
+
+            var tenantExists = await _context.Tenants
+                .AnyAsync(t =>
+                    t.Id == tenantId &&
+                    t.IsActive);
+
+            if (!tenantExists)
+            {
+                throw new KeyNotFoundException(
+                    "Tenant not found or inactive.");
+            }
+
+
+            // =========================================================
+            // 2. Check project
+            // =========================================================
+
+            var projectExists = await _context.Projects
+                .AnyAsync(p =>
+                    p.Id == projectId &&
+                    p.TenantId == tenantId);
+
+            if (!projectExists)
+            {
+                throw new KeyNotFoundException(
+                    "Project not found in this tenant.");
+            }
+
+
+            // =========================================================
+            // 3. Find task
+            // =========================================================
+
+            var task = await _context.TaskItems
+                .Include(t => t.AssignedTo)
+                .FirstOrDefaultAsync(t =>
+                    t.Id == taskId &&
+                    t.ProjectId == projectId);
+
+            if (task is null)
+            {
+                throw new KeyNotFoundException(
+                    "Task not found.");
+            }
+
+
+            // =========================================================
+            // 4. Check user
+            // =========================================================
+
+            var userExists = await _context.Users
+                .AnyAsync(u => u.Id == request.UserId);
+
+            if (!userExists)
+            {
+                throw new KeyNotFoundException(
+                    "User not found.");
+            }
+
+
+            // =========================================================
+            // 5. Check tenant membership
+            // =========================================================
+
+            var membership = await _context.TenantMemberships
+                .FirstOrDefaultAsync(x =>
+                    x.TenantId == tenantId &&
+                    x.UserId == request.UserId);
+
+            if (membership is null)
+            {
+                throw new InvalidOperationException(
+                    "The user is not a member of this tenant.");
+            }
+
+
+            // =========================================================
+            // 6. Only Developer can be assigned
+            // =========================================================
+
+            if (membership.Role != TenantRole.Developer)
+            {
+                throw new InvalidOperationException(
+                    "Only a tenant developer can be assigned to a task.");
+            }
+
+
+            // =========================================================
+            // 7. Assign
+            // =========================================================
+
+            task.AssignedToId = request.UserId;
+            task.AssignedTo = await _context.Users
+                .FirstAsync(u => u.Id == request.UserId);
+
+            task.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+
+            // =========================================================
+            // 8. Response
+            // =========================================================
+
+            return MapToResponse(task);
         }
     }
 }

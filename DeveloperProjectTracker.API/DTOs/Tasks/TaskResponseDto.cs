@@ -29,5 +29,7 @@ namespace DeveloperProjectTracker.API.DTOs.Tasks
         public DateTime CreatedAt { get; set; }
 
         public DateTime? UpdatedAt { get; set; }
+
+        public string? AssignedToName { get; set; }
     }
 }

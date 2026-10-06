@@ -348,6 +348,9 @@ namespace DeveloperProjectTracker.API.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AssignedToId");
@@ -363,6 +366,8 @@ namespace DeveloperProjectTracker.API.Migrations
                     b.HasIndex("ProjectId");
 
                     b.HasIndex("Status");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("Tasks", (string)null);
                 });
@@ -644,7 +649,7 @@ namespace DeveloperProjectTracker.API.Migrations
             modelBuilder.Entity("DeveloperProjectTrackerDomain.Entities.TaskItem", b =>
                 {
                     b.HasOne("DeveloperProjectTrackerDomain.Entities.User", "AssignedTo")
-                        .WithMany("AssignedTasks")
+                        .WithMany()
                         .HasForeignKey("AssignedToId")
                         .OnDelete(DeleteBehavior.SetNull);
 
@@ -664,6 +669,10 @@ namespace DeveloperProjectTracker.API.Migrations
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("DeveloperProjectTrackerDomain.Entities.User", null)
+                        .WithMany("AssignedTasks")
+                        .HasForeignKey("UserId");
 
                     b.Navigation("AssignedTo");
 

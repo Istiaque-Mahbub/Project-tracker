@@ -267,5 +267,60 @@ namespace DeveloperProjectTracker.API.Controllers
             }
         }
 
+
+        // =========================================================
+        // ASSIGN TASK
+        // =========================================================
+
+        [HttpPut("{taskId:guid}/assign")]
+        [Authorize(Policy = "TenantAdmin")]
+        public async Task<ActionResult<TaskResponseDto>> Assign(
+            Guid tenantId,
+            Guid projectId,
+            Guid taskId,
+            AssignTaskRequestDto request)
+        {
+            try
+            {
+                var task = await _taskService.AssignAsync(
+                    tenantId,
+                    projectId,
+                    taskId,
+                    request);
+
+                return Ok(task);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message = "An unexpected error occurred."
+                    });
+            }
+        }
+
     }
 }

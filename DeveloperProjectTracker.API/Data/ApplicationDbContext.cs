@@ -36,6 +36,13 @@ namespace DeveloperProjectTracker.API.Data
 
             modelBuilder.ApplyConfigurationsFromAssembly(
                 typeof(ApplicationDbContext).Assembly);
+
+
+            modelBuilder.Entity<TaskItem>()
+                .HasOne(x => x.AssignedTo)
+                .WithMany()
+                .HasForeignKey(x => x.AssignedToId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }
