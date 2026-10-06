@@ -1,5 +1,7 @@
 ﻿using DeveloperProjectTracker.API.Data;
 using DeveloperProjectTracker.API.DTOs.Milestones;
+using DeveloperProjectTracker.API.DTOs.Notifications;
+using DeveloperProjectTracker.API.Services.Notifications;
 using DeveloperProjectTrackerDomain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,11 +10,14 @@ namespace DeveloperProjectTracker.API.Services.Milestones
     public class MilestoneService : IMilestoneService
     {
         private readonly ApplicationDbContext _context;
+        private readonly INotificationService _notificationService;
 
         public MilestoneService(
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            INotificationService notificationService)
         {
             _context = context;
+            _notificationService = notificationService;
         }
 
         // =========================================================
@@ -166,7 +171,20 @@ namespace DeveloperProjectTracker.API.Services.Milestones
                     "Milestone not found.");
             }
 
-            milestone.Name = request.Name.Trim();
+            // -----------------------------------------------------
+            // Store old values before updating
+            // -----------------------------------------------------
+
+            var oldDueDate = milestone.DueDate;
+
+            var oldName = milestone.Name;
+
+            // -----------------------------------------------------
+            // Update milestone
+            // -----------------------------------------------------
+
+            milestone.Name =
+                request.Name.Trim();
 
             milestone.Description =
                 request.Description?.Trim();
@@ -178,6 +196,18 @@ namespace DeveloperProjectTracker.API.Services.Milestones
                 request.DueDate;
 
             await _context.SaveChangesAsync();
+
+            // -----------------------------------------------------
+            // Notify project members when due date changes
+            // -----------------------------------------------------
+
+            if (oldDueDate != milestone.DueDate)
+            {
+                await NotifyProjectMembersAboutDueDateChangeAsync(
+                    tenantId,
+                    projectId,
+                    milestone);
+            }
 
             return MapToResponse(milestone);
         }
@@ -212,6 +242,49 @@ namespace DeveloperProjectTracker.API.Services.Milestones
         }
 
         // =========================================================
+        // NOTIFY PROJECT MEMBERS
+        // =========================================================
+
+        private async System.Threading.Tasks.Task NotifyProjectMembersAboutDueDateChangeAsync(
+            Guid tenantId,
+            Guid projectId,
+            Milestone milestone)
+        {
+            // -----------------------------------------------------
+            // Get project members
+            // -----------------------------------------------------
+
+            var projectMemberIds = await _context.ProjectMembers
+                .AsNoTracking()
+                .Where(x =>
+                    x.ProjectId == projectId)
+                .Select(x => x.UserId)
+                .Distinct()
+                .ToListAsync();
+
+            // -----------------------------------------------------
+            // Also get tenant/project users if needed later.
+            //
+            // Currently we notify only ProjectMembers.
+            // -----------------------------------------------------
+
+            foreach (var userId in projectMemberIds)
+            {
+                await _notificationService.CreateAsync(
+                    userId,
+                    new CreateNotificationRequestDto
+                    {
+                        Title = "Milestone Due Date Changed",
+
+                        Message =
+                            $"The due date for milestone '{milestone.Name}' " +
+                            $"has been changed to " +
+                            $"{milestone.DueDate:dd MMM yyyy}."
+                    });
+            }
+        }
+
+        // =========================================================
         // VALIDATE PROJECT
         // =========================================================
 
@@ -219,6 +292,10 @@ namespace DeveloperProjectTracker.API.Services.Milestones
             Guid tenantId,
             Guid projectId)
         {
+            // -----------------------------------------------------
+            // Check tenant
+            // -----------------------------------------------------
+
             var tenantExists = await _context.Tenants
                 .AnyAsync(t =>
                     t.Id == tenantId &&
@@ -229,6 +306,10 @@ namespace DeveloperProjectTracker.API.Services.Milestones
                 throw new KeyNotFoundException(
                     "Tenant not found or inactive.");
             }
+
+            // -----------------------------------------------------
+            // Check project
+            // -----------------------------------------------------
 
             var projectExists = await _context.Projects
                 .AnyAsync(p =>

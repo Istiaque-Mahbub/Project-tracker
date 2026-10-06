@@ -1,5 +1,7 @@
 ﻿using DeveloperProjectTracker.API.Data;
 using DeveloperProjectTracker.API.DTOs.Comments;
+using DeveloperProjectTracker.API.DTOs.Notifications;
+using DeveloperProjectTracker.API.Services.Notifications;
 using DeveloperProjectTrackerDomain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,13 +10,15 @@ namespace DeveloperProjectTracker.API.Services.Comments
     public class CommentService : ICommentService
     {
         private readonly ApplicationDbContext _context;
+        private readonly INotificationService _notificationService;
 
         public CommentService(
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            INotificationService notificationService)
         {
             _context = context;
+            _notificationService = notificationService;
         }
-
 
         // =========================================================
         // CREATE COMMENT
@@ -38,14 +42,38 @@ namespace DeveloperProjectTracker.API.Services.Comments
                     "Comment content is required.");
             }
 
-            var userExists = await _context.Users
-                .AnyAsync(x => x.Id == userId);
+            // -----------------------------------------------------
+            // Check commenting user
+            // -----------------------------------------------------
 
-            if (!userExists)
+            var user = await _context.Users
+                .FirstOrDefaultAsync(x => x.Id == userId);
+
+            if (user is null)
             {
                 throw new UnauthorizedAccessException(
                     "User not found.");
             }
+
+            // -----------------------------------------------------
+            // Get task information
+            // -----------------------------------------------------
+
+            var task = await _context.TaskItems
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x =>
+                    x.Id == taskId &&
+                    x.ProjectId == projectId);
+
+            if (task is null)
+            {
+                throw new KeyNotFoundException(
+                    "Task not found.");
+            }
+
+            // -----------------------------------------------------
+            // Create comment
+            // -----------------------------------------------------
 
             var comment = new Comment
             {
@@ -64,9 +92,52 @@ namespace DeveloperProjectTracker.API.Services.Comments
 
             await _context.SaveChangesAsync();
 
+            // -----------------------------------------------------
+            // Load user navigation
+            // -----------------------------------------------------
+
             await _context.Entry(comment)
                 .Reference(x => x.User)
                 .LoadAsync();
+
+            // -----------------------------------------------------
+            // CREATE NOTIFICATIONS
+            // -----------------------------------------------------
+
+            var notificationUserIds = new HashSet<Guid>();
+
+            // Notify task creator
+            if (task.CreatedById != Guid.Empty &&
+                task.CreatedById != userId)
+            {
+                notificationUserIds.Add(task.CreatedById);
+            }
+
+            // Notify assigned developer
+            if (task.AssignedToId.HasValue &&
+                task.AssignedToId.Value != Guid.Empty &&
+                task.AssignedToId.Value != userId)
+            {
+                notificationUserIds.Add(
+                    task.AssignedToId.Value);
+            }
+
+            // -----------------------------------------------------
+            // Send notification to each relevant user
+            // -----------------------------------------------------
+
+            foreach (var notificationUserId in notificationUserIds)
+            {
+                await _notificationService.CreateAsync(
+                    notificationUserId,
+                    new CreateNotificationRequestDto
+                    {
+                        Title = "New Comment",
+
+                        Message =
+                            $"{user.FullName} commented on task '{task.Title}'."
+                    });
+            }
 
             return MapToResponse(comment);
         }
@@ -175,7 +246,7 @@ namespace DeveloperProjectTracker.API.Services.Comments
                     "Comment not found.");
             }
 
-            // Only the comment owner can update it.
+            // Only comment owner can update
             if (comment.UserId != userId)
             {
                 throw new UnauthorizedAccessException(
@@ -220,7 +291,7 @@ namespace DeveloperProjectTracker.API.Services.Comments
                     "Comment not found.");
             }
 
-            // Only the comment owner can delete it.
+            // Only comment owner can delete
             if (comment.UserId != userId)
             {
                 throw new UnauthorizedAccessException(
@@ -311,6 +382,5 @@ namespace DeveloperProjectTracker.API.Services.Comments
                 UpdatedAt = comment.UpdatedAt
             };
         }
-
     }
 }

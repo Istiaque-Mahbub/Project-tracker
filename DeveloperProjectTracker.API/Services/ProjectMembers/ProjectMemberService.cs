@@ -1,5 +1,7 @@
 ﻿using DeveloperProjectTracker.API.Data;
+using DeveloperProjectTracker.API.DTOs.Notifications;
 using DeveloperProjectTracker.API.DTOs.ProjectMembers;
+using DeveloperProjectTracker.API.Services.Notifications;
 using DeveloperProjectTrackerDomain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,11 +10,14 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
     public class ProjectMemberService : IProjectMemberService
     {
         private readonly ApplicationDbContext _context;
+        private readonly INotificationService _notificationService;
 
         public ProjectMemberService(
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            INotificationService notificationService)
         {
             _context = context;
+            _notificationService = notificationService;
         }
 
         // =========================================================
@@ -43,12 +48,12 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
             // 2. Check project belongs to tenant
             // -----------------------------------------------------
 
-            var projectExists = await _context.Projects
-                .AnyAsync(p =>
+            var project = await _context.Projects
+                .FirstOrDefaultAsync(p =>
                     p.Id == projectId &&
                     p.TenantId == tenantId);
 
-            if (!projectExists)
+            if (project is null)
             {
                 throw new KeyNotFoundException(
                     "Project not found in this tenant.");
@@ -113,6 +118,23 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
 
             await _context.SaveChangesAsync();
 
+            // -----------------------------------------------------
+            // 7. Send notification to new project member
+            // -----------------------------------------------------
+
+            await _notificationService.CreateAsync(
+                request.UserId,
+                new CreateNotificationRequestDto
+                {
+                    Title = "Added to Project",
+                    Message =
+                        $"You have been added to project '{project.Name}'."
+                });
+
+            // -----------------------------------------------------
+            // 8. Return response
+            // -----------------------------------------------------
+
             return new ProjectMemberResponseDto
             {
                 Id = projectMember.Id,
@@ -166,16 +188,24 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
             Guid projectId,
             Guid userId)
         {
+            // -----------------------------------------------------
+            // Check tenant
+            // -----------------------------------------------------
+
             var tenantExists = await _context.Tenants
-    .AnyAsync(t =>
-        t.Id == tenantId &&
-        t.IsActive);
+                .AnyAsync(t =>
+                    t.Id == tenantId &&
+                    t.IsActive);
 
             if (!tenantExists)
             {
                 throw new KeyNotFoundException(
                     "Tenant not found or inactive.");
             }
+
+            // -----------------------------------------------------
+            // Check project
+            // -----------------------------------------------------
 
             var projectExists = await _context.Projects
                 .AnyAsync(p =>
@@ -187,6 +217,10 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
                 throw new KeyNotFoundException(
                     "Project not found in this tenant.");
             }
+
+            // -----------------------------------------------------
+            // Find member
+            // -----------------------------------------------------
 
             var member = await _context.ProjectMembers
                 .AsNoTracking()
@@ -220,6 +254,10 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
             Guid projectId,
             Guid userId)
         {
+            // -----------------------------------------------------
+            // Check project
+            // -----------------------------------------------------
+
             var projectExists = await _context.Projects
                 .AnyAsync(p =>
                     p.Id == projectId &&
@@ -230,6 +268,10 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
                 throw new KeyNotFoundException(
                     "Project not found in this tenant.");
             }
+
+            // -----------------------------------------------------
+            // Find member
+            // -----------------------------------------------------
 
             var member = await _context.ProjectMembers
                 .FirstOrDefaultAsync(x =>
@@ -242,11 +284,13 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
                     "Project member not found.");
             }
 
+            // -----------------------------------------------------
+            // Remove member
+            // -----------------------------------------------------
+
             _context.ProjectMembers.Remove(member);
 
             await _context.SaveChangesAsync();
         }
-
-
     }
 }
