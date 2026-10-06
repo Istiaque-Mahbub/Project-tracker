@@ -3,6 +3,8 @@ using DeveloperProjectTracker.API.Configuration;
 using DeveloperProjectTracker.API.Data;
 using DeveloperProjectTracker.API.Data.Seed;
 using DeveloperProjectTracker.API.Services.Auth;
+using DeveloperProjectTracker.API.Services.Comments;
+using DeveloperProjectTracker.API.Services.Milestones;
 using DeveloperProjectTracker.API.Services.ProjectMembers;
 using DeveloperProjectTracker.API.Services.Projects;
 using DeveloperProjectTracker.API.Services.Task;
@@ -78,6 +80,16 @@ builder.Services.AddScoped<
 
 //project membership
 builder.Services.AddScoped<IProjectMemberService, ProjectMemberService>();
+
+//milestone
+builder.Services.AddScoped<
+    IMilestoneService,
+    MilestoneService>();
+
+//comments
+builder.Services.AddScoped<
+    ICommentService,
+    CommentService>();
 
 
 // =====================================================
