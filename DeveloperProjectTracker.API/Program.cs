@@ -2,15 +2,18 @@ using DeveloperProjectTracker.API.Authorization;
 using DeveloperProjectTracker.API.Configuration;
 using DeveloperProjectTracker.API.Data;
 using DeveloperProjectTracker.API.Data.Seed;
+using DeveloperProjectTracker.API.Hubs;
 using DeveloperProjectTracker.API.Services.Auth;
 using DeveloperProjectTracker.API.Services.Comments;
 using DeveloperProjectTracker.API.Services.Labels;
 using DeveloperProjectTracker.API.Services.Milestones;
+using DeveloperProjectTracker.API.Services.Notifications;
 using DeveloperProjectTracker.API.Services.ProjectMembers;
 using DeveloperProjectTracker.API.Services.Projects;
 using DeveloperProjectTracker.API.Services.Task;
 using DeveloperProjectTracker.API.Services.Tenant;
 using DeveloperProjectTracker.API.Services.Tenants;
+using DeveloperProjectTracker.API.Services.WorkLogs;
 using DeveloperProjectTrackerDomain.Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -21,6 +24,9 @@ using Microsoft.OpenApi;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+//signalR
+builder.Services.AddSignalR();
 
 // Controllers
 builder.Services.AddControllers();
@@ -96,6 +102,16 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     ILabelService,
     LabelService>();
+
+//worklogs
+builder.Services.AddScoped<
+    IWorkLogService,
+    WorkLogService>();
+
+//notification
+builder.Services.AddScoped<
+    INotificationService,
+    NotificationService>();
 
 
 // =====================================================
@@ -207,5 +223,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 app.Run();
