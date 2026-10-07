@@ -6,6 +6,7 @@ namespace DeveloperProjectTracker.API.Services.Projects
     {
         Task<ProjectResponseDto> CreateAsync(
             Guid tenantId,
+            Guid actorUserId,
             CreateProjectRequestDto request);
 
         Task<List<ProjectResponseDto>> GetAllAsync(
@@ -16,12 +17,14 @@ namespace DeveloperProjectTracker.API.Services.Projects
             Guid projectId);
 
         Task<ProjectResponseDto> UpdateAsync(
-    Guid tenantId,
-    Guid projectId,
-    UpdateProjectRequestDto request);
-
-        Task DeleteAsync(
             Guid tenantId,
-            Guid projectId);
+            Guid projectId,
+            Guid actorUserId,
+            UpdateProjectRequestDto request);
+
+        System.Threading.Tasks.Task DeleteAsync(
+            Guid tenantId,
+            Guid projectId,
+            Guid actorUserId);
     }
 }

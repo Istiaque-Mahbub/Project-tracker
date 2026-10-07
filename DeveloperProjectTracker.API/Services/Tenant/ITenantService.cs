@@ -15,8 +15,8 @@ namespace DeveloperProjectTracker.API.Services.Tenants
             Guid id,
             UpdateTenantRequestDto request);
 
-        Task ActivateAsync(Guid id);
+        System.Threading.Tasks.Task ActivateAsync(Guid id);
 
-        Task DeactivateAsync(Guid id);
+        System.Threading.Tasks.Task DeactivateAsync(Guid id);
     }
 }

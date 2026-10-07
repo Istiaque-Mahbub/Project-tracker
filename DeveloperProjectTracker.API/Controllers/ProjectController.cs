@@ -1,4 +1,5 @@
-﻿using DeveloperProjectTracker.API.DTOs.Projects;
+﻿using System.Security.Claims;
+using DeveloperProjectTracker.API.DTOs.Projects;
 using DeveloperProjectTracker.API.Services.Projects;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,10 +13,15 @@ namespace DeveloperProjectTracker.API.Controllers
     {
         private readonly IProjectService _projectService;
 
-        public ProjectController(IProjectService projectService)
+        public ProjectController(
+            IProjectService projectService)
         {
             _projectService = projectService;
         }
+
+        // =========================================================
+        // CREATE PROJECT
+        // =========================================================
 
         [HttpPost]
         [Authorize(Policy = "TenantAdmin")]
@@ -25,9 +31,13 @@ namespace DeveloperProjectTracker.API.Controllers
         {
             try
             {
-                var project = await _projectService.CreateAsync(
-                    tenantId,
-                    request);
+                var userId = GetCurrentUserId();
+
+                var project =
+                    await _projectService.CreateAsync(
+                        tenantId,
+                        userId,
+                        request);
 
                 return CreatedAtAction(
                     nameof(GetById),
@@ -65,7 +75,8 @@ namespace DeveloperProjectTracker.API.Controllers
                     StatusCodes.Status500InternalServerError,
                     new
                     {
-                        message = "An unexpected error occurred."
+                        message =
+                            "An unexpected error occurred."
                     });
             }
         }
@@ -80,8 +91,9 @@ namespace DeveloperProjectTracker.API.Controllers
         {
             try
             {
-                var projects = await _projectService.GetAllAsync(
-                    tenantId);
+                var projects =
+                    await _projectService.GetAllAsync(
+                        tenantId);
 
                 return Ok(projects);
             }
@@ -98,7 +110,8 @@ namespace DeveloperProjectTracker.API.Controllers
                     StatusCodes.Status500InternalServerError,
                     new
                     {
-                        message = "An unexpected error occurred."
+                        message =
+                            "An unexpected error occurred."
                     });
             }
         }
@@ -114,9 +127,10 @@ namespace DeveloperProjectTracker.API.Controllers
         {
             try
             {
-                var project = await _projectService.GetByIdAsync(
-                    tenantId,
-                    projectId);
+                var project =
+                    await _projectService.GetByIdAsync(
+                        tenantId,
+                        projectId);
 
                 return Ok(project);
             }
@@ -133,24 +147,33 @@ namespace DeveloperProjectTracker.API.Controllers
                     StatusCodes.Status500InternalServerError,
                     new
                     {
-                        message = "An unexpected error occurred."
+                        message =
+                            "An unexpected error occurred."
                     });
             }
         }
 
+        // =========================================================
+        // UPDATE PROJECT
+        // =========================================================
+
         [HttpPut("{projectId:guid}")]
         [Authorize(Policy = "TenantAdmin")]
         public async Task<ActionResult<ProjectResponseDto>> Update(
-    Guid tenantId,
-    Guid projectId,
-    UpdateProjectRequestDto request)
+            Guid tenantId,
+            Guid projectId,
+            UpdateProjectRequestDto request)
         {
             try
             {
-                var project = await _projectService.UpdateAsync(
-                    tenantId,
-                    projectId,
-                    request);
+                var userId = GetCurrentUserId();
+
+                var project =
+                    await _projectService.UpdateAsync(
+                        tenantId,
+                        projectId,
+                        userId,
+                        request);
 
                 return Ok(project);
             }
@@ -168,34 +191,9 @@ namespace DeveloperProjectTracker.API.Controllers
                     message = ex.Message
                 });
             }
-            catch (Exception)
+            catch (UnauthorizedAccessException ex)
             {
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    new
-                    {
-                        message = "An unexpected error occurred."
-                    });
-            }
-        }
-
-        [HttpDelete("{projectId:guid}")]
-        [Authorize(Policy = "TenantAdmin")]
-        public async Task<IActionResult> Delete(
-    Guid tenantId,
-    Guid projectId)
-        {
-            try
-            {
-                await _projectService.DeleteAsync(
-                    tenantId,
-                    projectId);
-
-                return NoContent();
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new
+                return Unauthorized(new
                 {
                     message = ex.Message
                 });
@@ -206,10 +204,78 @@ namespace DeveloperProjectTracker.API.Controllers
                     StatusCodes.Status500InternalServerError,
                     new
                     {
-                        message = "An unexpected error occurred."
+                        message =
+                            "An unexpected error occurred."
                     });
             }
         }
 
+        // =========================================================
+        // DELETE PROJECT
+        // =========================================================
+
+        [HttpDelete("{projectId:guid}")]
+        [Authorize(Policy = "TenantAdmin")]
+        public async Task<IActionResult> Delete(
+            Guid tenantId,
+            Guid projectId)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+
+                await _projectService.DeleteAsync(
+                    tenantId,
+                    projectId,
+                    userId);
+
+                return NoContent();
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message =
+                            "An unexpected error occurred."
+                    });
+            }
+        }
+
+        // =========================================================
+        // CURRENT USER
+        // =========================================================
+
+        private Guid GetCurrentUserId()
+        {
+            var userIdValue =
+                User.FindFirstValue(
+                    ClaimTypes.NameIdentifier);
+
+            if (!Guid.TryParse(
+                    userIdValue,
+                    out var userId))
+            {
+                throw new UnauthorizedAccessException(
+                    "Unable to identify the current user.");
+            }
+
+            return userId;
+        }
     }
 }

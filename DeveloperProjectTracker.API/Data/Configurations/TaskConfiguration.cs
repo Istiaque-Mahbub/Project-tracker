@@ -89,7 +89,7 @@ namespace DeveloperProjectTracker.API.Data.Configurations
                 .HasForeignKey(t => t.MilestoneId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            // Useful indexes
+            // Indexes
             builder.HasIndex(t => t.ProjectId);
 
             builder.HasIndex(t => t.AssignedToId);

@@ -2,10 +2,19 @@ using DeveloperProjectTracker.API.Authorization;
 using DeveloperProjectTracker.API.Configuration;
 using DeveloperProjectTracker.API.Data;
 using DeveloperProjectTracker.API.Data.Seed;
+using DeveloperProjectTracker.API.Hubs;
+using DeveloperProjectTracker.API.Services.ActivityLogs;
 using DeveloperProjectTracker.API.Services.Auth;
+using DeveloperProjectTracker.API.Services.Comments;
+using DeveloperProjectTracker.API.Services.Labels;
+using DeveloperProjectTracker.API.Services.Milestones;
+using DeveloperProjectTracker.API.Services.Notifications;
+using DeveloperProjectTracker.API.Services.ProjectMembers;
 using DeveloperProjectTracker.API.Services.Projects;
+using DeveloperProjectTracker.API.Services.Task;
 using DeveloperProjectTracker.API.Services.Tenant;
 using DeveloperProjectTracker.API.Services.Tenants;
+using DeveloperProjectTracker.API.Services.WorkLogs;
 using DeveloperProjectTrackerDomain.Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -17,29 +26,55 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Controllers
+// =====================================================
+// SIGNALR
+// =====================================================
+
+builder.Services.AddSignalR();
+
+// =====================================================
+// CONTROLLERS
+// =====================================================
+
 builder.Services.AddControllers();
 
 builder.Services.AddHttpContextAccessor();
 
-// Database
+// =====================================================
+// DATABASE
+// =====================================================
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection")
+        builder.Configuration.GetConnectionString(
+            "DefaultConnection")
     ));
 
-// JWT settings
+// =====================================================
+// JWT SETTINGS
+// =====================================================
+
 builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection("Jwt"));
 
+// =====================================================
+// AUTH SERVICES
+// =====================================================
+
 builder.Services.AddScoped<IJwtService, JwtService>();
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 
 builder.Services.AddScoped<IPasswordHasher<User>,
     PasswordHasher<User>>();
 
-// Tenant
-builder.Services.AddScoped<ITenantService, TenantService>();
+// =====================================================
+// TENANT SERVICES
+// =====================================================
+
+builder.Services.AddScoped<
+    ITenantService,
+    TenantService>();
 
 builder.Services.AddScoped<
     ITenantMembershipService,
@@ -49,25 +84,97 @@ builder.Services.AddScoped<
     ITenantAuthorizationService,
     TenantAuthorizationService>();
 
-builder.Services.AddControllers();
+// =====================================================
+// TENANT AUTHORIZATION
+// =====================================================
 
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("TenantAdmin", policy =>
     {
         policy.RequireAuthenticatedUser();
+
         policy.AddRequirements(
             new TenantAdminRequirement());
     });
 });
 
-
 builder.Services.AddScoped<
     IAuthorizationHandler,
     TenantAdminHandler>();
 
-//Project
-builder.Services.AddScoped<IProjectService, ProjectService>();
+// =====================================================
+// PROJECT
+// =====================================================
+
+builder.Services.AddScoped<
+    IProjectService,
+    ProjectService>();
+
+// =====================================================
+// TASK
+// =====================================================
+
+builder.Services.AddScoped<
+    ITaskService,
+    TaskService>();
+
+// =====================================================
+// PROJECT MEMBERS
+// =====================================================
+
+builder.Services.AddScoped<
+    IProjectMemberService,
+    ProjectMemberService>();
+
+// =====================================================
+// MILESTONE
+// =====================================================
+
+builder.Services.AddScoped<
+    IMilestoneService,
+    MilestoneService>();
+
+// =====================================================
+// COMMENTS
+// =====================================================
+
+builder.Services.AddScoped<
+    ICommentService,
+    CommentService>();
+
+// =====================================================
+// LABELS
+// =====================================================
+
+builder.Services.AddScoped<
+    ILabelService,
+    LabelService>();
+
+// =====================================================
+// WORK LOGS
+// =====================================================
+
+builder.Services.AddScoped<
+    IWorkLogService,
+    WorkLogService>();
+
+// =====================================================
+// NOTIFICATIONS
+// =====================================================
+
+builder.Services.AddScoped<
+    INotificationService,
+    NotificationService>();
+
+
+// =====================================================
+// NOTIFICATIONS
+// =====================================================
+
+builder.Services.AddScoped<
+    IActivityLogService,
+    ActivityLogService>();
 
 // =====================================================
 // JWT AUTHENTICATION
@@ -77,27 +184,60 @@ var jwtSettings = builder.Configuration
     .GetSection("Jwt")
     .Get<JwtSettings>();
 
+if (jwtSettings is null)
+{
+    throw new InvalidOperationException(
+        "JWT settings are not configured.");
+}
+
 builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddAuthentication(
+        JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.TokenValidationParameters = new TokenValidationParameters
+        options.TokenValidationParameters =
+            new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+
+                ValidIssuer = jwtSettings.Issuer,
+
+                ValidAudience = jwtSettings.Audience,
+
+                IssuerSigningKey =
+                    new SymmetricSecurityKey(
+                        Encoding.UTF8.GetBytes(
+                            jwtSettings.Key))
+            };
+
+        // =================================================
+        // SignalR JWT Authentication
+        // =================================================
+
+        options.Events = new JwtBearerEvents
         {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
+            OnMessageReceived = context =>
+            {
+                var accessToken =
+                    context.Request.Query["access_token"];
 
-            ValidIssuer = jwtSettings!.Issuer,
-            ValidAudience = jwtSettings.Audience,
+                var path =
+                    context.HttpContext.Request.Path;
 
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtSettings.Key))
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    path.StartsWithSegments(
+                        "/hubs/notifications"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
         };
     });
-
-builder.Services.AddAuthorization();
-
 
 // =====================================================
 // SWAGGER
@@ -107,35 +247,49 @@ builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "DeveloperProjectTracker.API",
-        Version = "v1"
-    });
+    options.SwaggerDoc(
+        "v1",
+        new OpenApiInfo
+        {
+            Title = "DeveloperProjectTracker.API",
+            Version = "v1"
+        });
 
-    // Bearer JWT
-    options.AddSecurityDefinition("bearer", new OpenApiSecurityScheme
-    {
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT",
-        Description =
-            "Enter your JWT token. Example: Bearer eyJhbGciOi..."
-    });
+    // =================================================
+    // JWT Bearer Authentication
+    // =================================================
 
-    // .NET 10 / Swashbuckle 10 syntax
+    options.AddSecurityDefinition(
+        "bearer",
+        new OpenApiSecurityScheme
+        {
+            Type = SecuritySchemeType.Http,
+
+            Scheme = "bearer",
+
+            BearerFormat = "JWT",
+
+            Description =
+                "Enter your JWT token. Example: " +
+                "Bearer eyJhbGciOi..."
+        });
+
     options.AddSecurityRequirement(document =>
         new OpenApiSecurityRequirement
         {
-            [new OpenApiSecuritySchemeReference(
-                "bearer",
-                document)] = []
+            [
+                new OpenApiSecuritySchemeReference(
+                    "bearer",
+                    document)
+            ] = []
         });
 });
 
+// =====================================================
+// BUILD APPLICATION
+// =====================================================
 
 var app = builder.Build();
-
 
 // =====================================================
 // SUPER ADMIN SEEDER
@@ -149,7 +303,8 @@ using (var scope = app.Services.CreateScope())
         services.GetRequiredService<ApplicationDbContext>();
 
     var passwordHasher =
-        services.GetRequiredService<IPasswordHasher<User>>();
+        services.GetRequiredService<
+            IPasswordHasher<User>>();
 
     var configuration =
         services.GetRequiredService<IConfiguration>();
@@ -160,16 +315,20 @@ using (var scope = app.Services.CreateScope())
         configuration);
 }
 
-
 // =====================================================
-// HTTP PIPELINE
+// DEVELOPMENT
 // =====================================================
 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
+
     app.UseSwaggerUI();
 }
+
+// =====================================================
+// HTTP PIPELINE
+// =====================================================
 
 app.UseHttpsRedirection();
 
@@ -177,6 +336,21 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 
+// =====================================================
+// CONTROLLERS
+// =====================================================
+
 app.MapControllers();
+
+// =====================================================
+// SIGNALR HUB
+// =====================================================
+
+app.MapHub<NotificationHub>(
+    "/hubs/notifications");
+
+// =====================================================
+// RUN
+// =====================================================
 
 app.Run();
