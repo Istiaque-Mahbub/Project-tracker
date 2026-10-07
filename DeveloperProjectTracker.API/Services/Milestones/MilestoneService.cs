@@ -66,6 +66,14 @@ namespace DeveloperProjectTracker.API.Services.Milestones
 
             await _context.SaveChangesAsync();
 
+            // -----------------------------------------------------
+            // Notify project members about new milestone
+            // -----------------------------------------------------
+
+            await NotifyProjectMembersAboutMilestoneCreationAsync(
+                projectId,
+                milestone);
+
             return MapToResponse(milestone);
         }
 
@@ -172,12 +180,11 @@ namespace DeveloperProjectTracker.API.Services.Milestones
             }
 
             // -----------------------------------------------------
-            // Store old values before updating
+            // Store old date values
             // -----------------------------------------------------
 
+            var oldStartDate = milestone.StartDate;
             var oldDueDate = milestone.DueDate;
-
-            var oldName = milestone.Name;
 
             // -----------------------------------------------------
             // Update milestone
@@ -198,13 +205,23 @@ namespace DeveloperProjectTracker.API.Services.Milestones
             await _context.SaveChangesAsync();
 
             // -----------------------------------------------------
-            // Notify project members when due date changes
+            // Notify when start date changes
+            // -----------------------------------------------------
+
+            if (oldStartDate != milestone.StartDate)
+            {
+                await NotifyProjectMembersAboutStartDateChangeAsync(
+                    projectId,
+                    milestone);
+            }
+
+            // -----------------------------------------------------
+            // Notify when due date changes
             // -----------------------------------------------------
 
             if (oldDueDate != milestone.DueDate)
             {
                 await NotifyProjectMembersAboutDueDateChangeAsync(
-                    tenantId,
                     projectId,
                     milestone);
             }
@@ -242,18 +259,14 @@ namespace DeveloperProjectTracker.API.Services.Milestones
         }
 
         // =========================================================
-        // NOTIFY PROJECT MEMBERS
+        // NOTIFY PROJECT MEMBERS - MILESTONE CREATED
         // =========================================================
 
-        private async System.Threading.Tasks.Task NotifyProjectMembersAboutDueDateChangeAsync(
-            Guid tenantId,
-            Guid projectId,
-            Milestone milestone)
+        private async System.Threading.Tasks.Task
+            NotifyProjectMembersAboutMilestoneCreationAsync(
+                Guid projectId,
+                Milestone milestone)
         {
-            // -----------------------------------------------------
-            // Get project members
-            // -----------------------------------------------------
-
             var projectMemberIds = await _context.ProjectMembers
                 .AsNoTracking()
                 .Where(x =>
@@ -262,11 +275,70 @@ namespace DeveloperProjectTracker.API.Services.Milestones
                 .Distinct()
                 .ToListAsync();
 
-            // -----------------------------------------------------
-            // Also get tenant/project users if needed later.
-            //
-            // Currently we notify only ProjectMembers.
-            // -----------------------------------------------------
+            foreach (var userId in projectMemberIds)
+            {
+                await _notificationService.CreateAsync(
+                    userId,
+                    new CreateNotificationRequestDto
+                    {
+                        Title = "New Milestone Created",
+
+                        Message =
+                            $"A new milestone '{milestone.Name}' " +
+                            $"has been created in your project."
+                    });
+            }
+        }
+
+        // =========================================================
+        // NOTIFY PROJECT MEMBERS - START DATE CHANGED
+        // =========================================================
+
+        private async System.Threading.Tasks.Task
+            NotifyProjectMembersAboutStartDateChangeAsync(
+                Guid projectId,
+                Milestone milestone)
+        {
+            var projectMemberIds = await _context.ProjectMembers
+                .AsNoTracking()
+                .Where(x =>
+                    x.ProjectId == projectId)
+                .Select(x => x.UserId)
+                .Distinct()
+                .ToListAsync();
+
+            foreach (var userId in projectMemberIds)
+            {
+                await _notificationService.CreateAsync(
+                    userId,
+                    new CreateNotificationRequestDto
+                    {
+                        Title = "Milestone Start Date Changed",
+
+                        Message =
+                            $"The start date for milestone " +
+                            $"'{milestone.Name}' has been changed to " +
+                            $"{milestone.StartDate:dd MMM yyyy}."
+                    });
+            }
+        }
+
+        // =========================================================
+        // NOTIFY PROJECT MEMBERS - DUE DATE CHANGED
+        // =========================================================
+
+        private async System.Threading.Tasks.Task
+            NotifyProjectMembersAboutDueDateChangeAsync(
+                Guid projectId,
+                Milestone milestone)
+        {
+            var projectMemberIds = await _context.ProjectMembers
+                .AsNoTracking()
+                .Where(x =>
+                    x.ProjectId == projectId)
+                .Select(x => x.UserId)
+                .Distinct()
+                .ToListAsync();
 
             foreach (var userId in projectMemberIds)
             {
@@ -277,8 +349,8 @@ namespace DeveloperProjectTracker.API.Services.Milestones
                         Title = "Milestone Due Date Changed",
 
                         Message =
-                            $"The due date for milestone '{milestone.Name}' " +
-                            $"has been changed to " +
+                            $"The due date for milestone " +
+                            $"'{milestone.Name}' has been changed to " +
                             $"{milestone.DueDate:dd MMM yyyy}."
                     });
             }
