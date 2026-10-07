@@ -255,22 +255,37 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
             Guid userId)
         {
             // -----------------------------------------------------
-            // Check project
+            // 1. Check tenant
             // -----------------------------------------------------
 
-            var projectExists = await _context.Projects
-                .AnyAsync(p =>
+            var tenantExists = await _context.Tenants
+                .AnyAsync(t =>
+                    t.Id == tenantId &&
+                    t.IsActive);
+
+            if (!tenantExists)
+            {
+                throw new KeyNotFoundException(
+                    "Tenant not found or inactive.");
+            }
+
+            // -----------------------------------------------------
+            // 2. Get project
+            // -----------------------------------------------------
+
+            var project = await _context.Projects
+                .FirstOrDefaultAsync(p =>
                     p.Id == projectId &&
                     p.TenantId == tenantId);
 
-            if (!projectExists)
+            if (project is null)
             {
                 throw new KeyNotFoundException(
                     "Project not found in this tenant.");
             }
 
             // -----------------------------------------------------
-            // Find member
+            // 3. Find member
             // -----------------------------------------------------
 
             var member = await _context.ProjectMembers
@@ -285,12 +300,25 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
             }
 
             // -----------------------------------------------------
-            // Remove member
+            // 4. Remove member
             // -----------------------------------------------------
 
             _context.ProjectMembers.Remove(member);
 
             await _context.SaveChangesAsync();
+
+            // -----------------------------------------------------
+            // 5. Send notification to removed member
+            // -----------------------------------------------------
+
+            await _notificationService.CreateAsync(
+                userId,
+                new CreateNotificationRequestDto
+                {
+                    Title = "Removed from Project",
+                    Message =
+                        $"You have been removed from project '{project.Name}'."
+                });
         }
     }
 }
