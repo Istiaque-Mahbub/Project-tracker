@@ -1,7 +1,8 @@
 ﻿using DeveloperProjectTracker.API.Data;
+using DeveloperProjectTracker.API.DTOs.Notifications;
 using DeveloperProjectTracker.API.DTOs.Tenant;
+using DeveloperProjectTracker.API.Services.Notifications;
 using DeveloperProjectTrackerDomain.Entities;
-using DeveloperProjectTrackerDomain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace DeveloperProjectTracker.API.Services.Tenant
@@ -9,12 +10,19 @@ namespace DeveloperProjectTracker.API.Services.Tenant
     public class TenantMembershipService : ITenantMembershipService
     {
         private readonly ApplicationDbContext _context;
+        private readonly INotificationService _notificationService;
 
         public TenantMembershipService(
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            INotificationService notificationService)
         {
             _context = context;
+            _notificationService = notificationService;
         }
+
+        // =========================================================
+        // ADD MEMBER
+        // =========================================================
 
         public async Task<TenantMemberResponseDto> AddMemberAsync(
             Guid tenantId,
@@ -35,7 +43,9 @@ namespace DeveloperProjectTracker.API.Services.Tenant
                     "Tenant is inactive.");
             }
 
-            var email = request.Email.Trim().ToLowerInvariant();
+            var email = request.Email
+                .Trim()
+                .ToLowerInvariant();
 
             var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Email == email);
@@ -70,6 +80,20 @@ namespace DeveloperProjectTracker.API.Services.Tenant
 
             await _context.SaveChangesAsync();
 
+            // -----------------------------------------------------
+            // Send notification to the newly added user
+            // -----------------------------------------------------
+
+            await _notificationService.CreateAsync(
+                user.Id,
+                new CreateNotificationRequestDto
+                {
+                    Title = "Added to Tenant",
+                    Message =
+                        $"You have been added to tenant '{tenant.Name}' " +
+                        $"with the role '{membership.Role}'."
+                });
+
             return new TenantMemberResponseDto
             {
                 UserId = user.Id,
@@ -80,6 +104,9 @@ namespace DeveloperProjectTracker.API.Services.Tenant
             };
         }
 
+        // =========================================================
+        // GET ALL MEMBERS
+        // =========================================================
 
         public async Task<List<TenantMemberResponseDto>> GetMembersAsync(
             Guid tenantId)
@@ -109,6 +136,9 @@ namespace DeveloperProjectTracker.API.Services.Tenant
                 .ToListAsync();
         }
 
+        // =========================================================
+        // GET SINGLE MEMBER
+        // =========================================================
 
         public async Task<TenantMemberResponseDto> GetMemberAsync(
             Guid tenantId,
@@ -137,6 +167,9 @@ namespace DeveloperProjectTracker.API.Services.Tenant
             };
         }
 
+        // =========================================================
+        // UPDATE MEMBER ROLE
+        // =========================================================
 
         public async Task<TenantMemberResponseDto> UpdateRoleAsync(
             Guid tenantId,
@@ -155,9 +188,38 @@ namespace DeveloperProjectTracker.API.Services.Tenant
                     "Tenant member not found.");
             }
 
+            var oldRole = membership.Role;
+
+            // Nothing changed
+            if (oldRole == request.Role)
+            {
+                return new TenantMemberResponseDto
+                {
+                    UserId = membership.UserId,
+                    FullName = membership.User.FullName,
+                    Email = membership.User.Email,
+                    Role = membership.Role,
+                    JoinedAt = membership.JoinedAt
+                };
+            }
+
             membership.Role = request.Role;
 
             await _context.SaveChangesAsync();
+
+            // -----------------------------------------------------
+            // Notify user about role change
+            // -----------------------------------------------------
+
+            await _notificationService.CreateAsync(
+                membership.UserId,
+                new CreateNotificationRequestDto
+                {
+                    Title = "Tenant Role Changed",
+                    Message =
+                        $"Your role has been changed from " +
+                        $"'{oldRole}' to '{membership.Role}'."
+                });
 
             return new TenantMemberResponseDto
             {
@@ -169,12 +231,16 @@ namespace DeveloperProjectTracker.API.Services.Tenant
             };
         }
 
+        // =========================================================
+        // REMOVE MEMBER
+        // =========================================================
 
         public async System.Threading.Tasks.Task RemoveMemberAsync(
             Guid tenantId,
             Guid userId)
         {
             var membership = await _context.TenantMemberships
+                .Include(x => x.User)
                 .FirstOrDefaultAsync(x =>
                     x.TenantId == tenantId &&
                     x.UserId == userId);
@@ -185,9 +251,37 @@ namespace DeveloperProjectTracker.API.Services.Tenant
                     "Tenant member not found.");
             }
 
+            var userIdToNotify = membership.UserId;
+
+            var userName = membership.User.FullName;
+
+            var tenant = await _context.Tenants
+                .FirstOrDefaultAsync(x =>
+                    x.Id == tenantId);
+
+            if (tenant is null)
+            {
+                throw new KeyNotFoundException(
+                    "Tenant not found.");
+            }
+
             _context.TenantMemberships.Remove(membership);
 
             await _context.SaveChangesAsync();
+
+            // -----------------------------------------------------
+            // Notify removed user
+            // -----------------------------------------------------
+
+            await _notificationService.CreateAsync(
+                userIdToNotify,
+                new CreateNotificationRequestDto
+                {
+                    Title = "Removed from Tenant",
+                    Message =
+                        $"You have been removed from tenant " +
+                        $"'{tenant.Name}'."
+                });
         }
     }
 }
