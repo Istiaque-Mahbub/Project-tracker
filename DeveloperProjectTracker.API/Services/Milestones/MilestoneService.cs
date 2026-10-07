@@ -1,6 +1,7 @@
 ﻿using DeveloperProjectTracker.API.Data;
 using DeveloperProjectTracker.API.DTOs.Milestones;
 using DeveloperProjectTracker.API.DTOs.Notifications;
+using DeveloperProjectTracker.API.Services.ActivityLogs;
 using DeveloperProjectTracker.API.Services.Notifications;
 using DeveloperProjectTrackerDomain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -11,13 +12,16 @@ namespace DeveloperProjectTracker.API.Services.Milestones
     {
         private readonly ApplicationDbContext _context;
         private readonly INotificationService _notificationService;
+        private readonly IActivityLogService _activityLogService;
 
         public MilestoneService(
             ApplicationDbContext context,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IActivityLogService activityLogService)
         {
             _context = context;
             _notificationService = notificationService;
+            _activityLogService = activityLogService;
         }
 
         // =========================================================
@@ -27,9 +31,10 @@ namespace DeveloperProjectTracker.API.Services.Milestones
         public async Task<MilestoneResponseDto> CreateAsync(
             Guid tenantId,
             Guid projectId,
+            Guid actorUserId,
             CreateMilestoneRequestDto request)
         {
-            await ValidateProjectAsync(
+            var project = await ValidateProjectAsync(
                 tenantId,
                 projectId);
 
@@ -65,6 +70,18 @@ namespace DeveloperProjectTracker.API.Services.Milestones
             _context.Milestones.Add(milestone);
 
             await _context.SaveChangesAsync();
+
+            // -----------------------------------------------------
+            // Activity Log
+            // -----------------------------------------------------
+
+            await _activityLogService.CreateAsync(
+                tenantId,
+                actorUserId,
+                projectId,
+                null,
+                "MilestoneCreated",
+                $"Milestone '{milestone.Name}' was created in project '{project.Name}'.");
 
             // -----------------------------------------------------
             // Notify project members about new milestone
@@ -150,9 +167,10 @@ namespace DeveloperProjectTracker.API.Services.Milestones
             Guid tenantId,
             Guid projectId,
             Guid milestoneId,
+            Guid actorUserId,
             UpdateMilestoneRequestDto request)
         {
-            await ValidateProjectAsync(
+            var project = await ValidateProjectAsync(
                 tenantId,
                 projectId);
 
@@ -180,9 +198,11 @@ namespace DeveloperProjectTracker.API.Services.Milestones
             }
 
             // -----------------------------------------------------
-            // Store old date values
+            // Store old values
             // -----------------------------------------------------
 
+            var oldName = milestone.Name;
+            var oldDescription = milestone.Description;
             var oldStartDate = milestone.StartDate;
             var oldDueDate = milestone.DueDate;
 
@@ -203,6 +223,51 @@ namespace DeveloperProjectTracker.API.Services.Milestones
                 request.DueDate;
 
             await _context.SaveChangesAsync();
+
+            // -----------------------------------------------------
+            // Activity Log
+            // -----------------------------------------------------
+
+            var changes = new List<string>();
+
+            if (oldName != milestone.Name)
+            {
+                changes.Add(
+                    $"name changed from '{oldName}' to '{milestone.Name}'");
+            }
+
+            if (oldDescription != milestone.Description)
+            {
+                changes.Add("description updated");
+            }
+
+            if (oldStartDate != milestone.StartDate)
+            {
+                changes.Add(
+                    $"start date changed from " +
+                    $"{oldStartDate:dd MMM yyyy} to " +
+                    $"{milestone.StartDate:dd MMM yyyy}");
+            }
+
+            if (oldDueDate != milestone.DueDate)
+            {
+                changes.Add(
+                    $"due date changed from " +
+                    $"{oldDueDate:dd MMM yyyy} to " +
+                    $"{milestone.DueDate:dd MMM yyyy}");
+            }
+
+            if (changes.Count > 0)
+            {
+                await _activityLogService.CreateAsync(
+                    tenantId,
+                    actorUserId,
+                    projectId,
+                    null,
+                    "MilestoneUpdated",
+                    $"Milestone '{milestone.Name}' was updated in project '{project.Name}'. " +
+                    $"Changes: {string.Join("; ", changes)}.");
+            }
 
             // -----------------------------------------------------
             // Notify when start date changes
@@ -236,9 +301,10 @@ namespace DeveloperProjectTracker.API.Services.Milestones
         public async System.Threading.Tasks.Task DeleteAsync(
             Guid tenantId,
             Guid projectId,
-            Guid milestoneId)
+            Guid milestoneId,
+            Guid actorUserId)
         {
-            await ValidateProjectAsync(
+            var project = await ValidateProjectAsync(
                 tenantId,
                 projectId);
 
@@ -253,9 +319,31 @@ namespace DeveloperProjectTracker.API.Services.Milestones
                     "Milestone not found.");
             }
 
+            // -----------------------------------------------------
+            // Store information before deletion
+            // -----------------------------------------------------
+
+            var milestoneName = milestone.Name;
+
+            // -----------------------------------------------------
+            // Delete milestone
+            // -----------------------------------------------------
+
             _context.Milestones.Remove(milestone);
 
             await _context.SaveChangesAsync();
+
+            // -----------------------------------------------------
+            // Activity Log
+            // -----------------------------------------------------
+
+            await _activityLogService.CreateAsync(
+                tenantId,
+                actorUserId,
+                projectId,
+                null,
+                "MilestoneDeleted",
+                $"Milestone '{milestoneName}' was deleted from project '{project.Name}'.");
         }
 
         // =========================================================
@@ -360,9 +448,10 @@ namespace DeveloperProjectTracker.API.Services.Milestones
         // VALIDATE PROJECT
         // =========================================================
 
-        private async System.Threading.Tasks.Task ValidateProjectAsync(
-            Guid tenantId,
-            Guid projectId)
+        private async Task<DeveloperProjectTrackerDomain.Entities.Project>
+            ValidateProjectAsync(
+                Guid tenantId,
+                Guid projectId)
         {
             // -----------------------------------------------------
             // Check tenant
@@ -383,16 +472,18 @@ namespace DeveloperProjectTracker.API.Services.Milestones
             // Check project
             // -----------------------------------------------------
 
-            var projectExists = await _context.Projects
-                .AnyAsync(p =>
+            var project = await _context.Projects
+                .FirstOrDefaultAsync(p =>
                     p.Id == projectId &&
                     p.TenantId == tenantId);
 
-            if (!projectExists)
+            if (project is null)
             {
                 throw new KeyNotFoundException(
                     "Project not found in this tenant.");
             }
+
+            return project;
         }
 
         // =========================================================

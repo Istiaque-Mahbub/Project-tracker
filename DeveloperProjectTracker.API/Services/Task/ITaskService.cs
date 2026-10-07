@@ -20,20 +20,23 @@ namespace DeveloperProjectTracker.API.Services.Task
             Guid taskId);
 
         Task<TaskResponseDto> UpdateAsync(
-            Guid tenantId,
-            Guid projectId,
-            Guid taskId,
-            UpdateTaskRequestDto request);
+     Guid tenantId,
+     Guid projectId,
+     Guid taskId,
+     Guid userId,
+     UpdateTaskRequestDto request);
 
         System.Threading.Tasks.Task DeleteAsync(
             Guid tenantId,
             Guid projectId,
-            Guid taskId);
+            Guid taskId,
+            Guid userId);
 
-       Task<TaskResponseDto> AssignAsync(
-    Guid tenantId,
-    Guid projectId,
-    Guid taskId,
-    AssignTaskRequestDto request);
+        Task<TaskResponseDto> AssignAsync(
+            Guid tenantId,
+            Guid projectId,
+            Guid taskId,
+            Guid userId,
+            AssignTaskRequestDto request);
     }
 }

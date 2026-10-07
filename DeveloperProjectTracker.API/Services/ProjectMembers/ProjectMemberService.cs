@@ -1,6 +1,7 @@
 ﻿using DeveloperProjectTracker.API.Data;
 using DeveloperProjectTracker.API.DTOs.Notifications;
 using DeveloperProjectTracker.API.DTOs.ProjectMembers;
+using DeveloperProjectTracker.API.Services.ActivityLogs;
 using DeveloperProjectTracker.API.Services.Notifications;
 using DeveloperProjectTrackerDomain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -11,28 +12,29 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
     {
         private readonly ApplicationDbContext _context;
         private readonly INotificationService _notificationService;
+        private readonly IActivityLogService _activityLogService;
 
         public ProjectMemberService(
             ApplicationDbContext context,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IActivityLogService activityLogService)
         {
             _context = context;
             _notificationService = notificationService;
+            _activityLogService = activityLogService;
         }
 
         // =========================================================
-        // ADD MEMBER
+        // ADD PROJECT MEMBER
         // =========================================================
 
         public async Task<ProjectMemberResponseDto> AddMemberAsync(
             Guid tenantId,
             Guid projectId,
+            Guid actorUserId,
             AddProjectMemberRequestDto request)
         {
-            // -----------------------------------------------------
-            // 1. Check tenant
-            // -----------------------------------------------------
-
+            // Validate tenant
             var tenantExists = await _context.Tenants
                 .AnyAsync(t =>
                     t.Id == tenantId &&
@@ -44,10 +46,7 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
                     "Tenant not found or inactive.");
             }
 
-            // -----------------------------------------------------
-            // 2. Check project belongs to tenant
-            // -----------------------------------------------------
-
+            // Validate project belongs to tenant
             var project = await _context.Projects
                 .FirstOrDefaultAsync(p =>
                     p.Id == projectId &&
@@ -59,10 +58,7 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
                     "Project not found in this tenant.");
             }
 
-            // -----------------------------------------------------
-            // 3. Check user exists
-            // -----------------------------------------------------
-
+            // Validate target user
             var user = await _context.Users
                 .FirstOrDefaultAsync(u =>
                     u.Id == request.UserId);
@@ -73,10 +69,7 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
                     "User not found.");
             }
 
-            // -----------------------------------------------------
-            // 4. Check user belongs to tenant
-            // -----------------------------------------------------
-
+            // Target user must belong to tenant
             var tenantMember = await _context.TenantMemberships
                 .AnyAsync(x =>
                     x.TenantId == tenantId &&
@@ -88,10 +81,7 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
                     "User is not a member of this tenant.");
             }
 
-            // -----------------------------------------------------
-            // 5. Check existing project membership
-            // -----------------------------------------------------
-
+            // Check if already a project member
             var existingMember = await _context.ProjectMembers
                 .AnyAsync(x =>
                     x.ProjectId == projectId &&
@@ -103,10 +93,7 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
                     "User is already a member of this project.");
             }
 
-            // -----------------------------------------------------
-            // 6. Create project membership
-            // -----------------------------------------------------
-
+            // Create project membership
             var projectMember = new ProjectMember
             {
                 Id = Guid.NewGuid(),
@@ -118,9 +105,24 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
 
             await _context.SaveChangesAsync();
 
-            // -----------------------------------------------------
-            // 7. Send notification to new project member
-            // -----------------------------------------------------
+            // =====================================================
+            // ACTIVITY LOG
+            // actorUserId = admin who performed the action
+            // request.UserId = user who was added
+            // =====================================================
+
+            await _activityLogService.CreateAsync(
+                tenantId,
+                actorUserId,
+                projectId,
+                null,
+                "ProjectMemberAdded",
+                $"User '{user.FullName}' was added to project '{project.Name}'.");
+
+            // =====================================================
+            // NOTIFICATION
+            // Notify the user who was added
+            // =====================================================
 
             await _notificationService.CreateAsync(
                 request.UserId,
@@ -131,10 +133,7 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
                         $"You have been added to project '{project.Name}'."
                 });
 
-            // -----------------------------------------------------
-            // 8. Return response
-            // -----------------------------------------------------
-
+            // Return response
             return new ProjectMemberResponseDto
             {
                 Id = projectMember.Id,
@@ -146,13 +145,26 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
         }
 
         // =========================================================
-        // GET ALL MEMBERS
+        // GET ALL PROJECT MEMBERS
         // =========================================================
 
         public async Task<List<ProjectMemberResponseDto>> GetMembersAsync(
             Guid tenantId,
             Guid projectId)
         {
+            // Validate tenant
+            var tenantExists = await _context.Tenants
+                .AnyAsync(t =>
+                    t.Id == tenantId &&
+                    t.IsActive);
+
+            if (!tenantExists)
+            {
+                throw new KeyNotFoundException(
+                    "Tenant not found or inactive.");
+            }
+
+            // Validate project
             var projectExists = await _context.Projects
                 .AnyAsync(p =>
                     p.Id == projectId &&
@@ -164,9 +176,11 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
                     "Project not found in this tenant.");
             }
 
+            // Get members
             return await _context.ProjectMembers
                 .AsNoTracking()
-                .Where(x => x.ProjectId == projectId)
+                .Where(x =>
+                    x.ProjectId == projectId)
                 .Include(x => x.User)
                 .Select(x => new ProjectMemberResponseDto
                 {
@@ -180,7 +194,7 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
         }
 
         // =========================================================
-        // GET SINGLE MEMBER
+        // GET SINGLE PROJECT MEMBER
         // =========================================================
 
         public async Task<ProjectMemberResponseDto> GetMemberAsync(
@@ -188,10 +202,7 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
             Guid projectId,
             Guid userId)
         {
-            // -----------------------------------------------------
-            // Check tenant
-            // -----------------------------------------------------
-
+            // Validate tenant
             var tenantExists = await _context.Tenants
                 .AnyAsync(t =>
                     t.Id == tenantId &&
@@ -203,10 +214,7 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
                     "Tenant not found or inactive.");
             }
 
-            // -----------------------------------------------------
-            // Check project
-            // -----------------------------------------------------
-
+            // Validate project
             var projectExists = await _context.Projects
                 .AnyAsync(p =>
                     p.Id == projectId &&
@@ -218,10 +226,7 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
                     "Project not found in this tenant.");
             }
 
-            // -----------------------------------------------------
             // Find member
-            // -----------------------------------------------------
-
             var member = await _context.ProjectMembers
                 .AsNoTracking()
                 .Include(x => x.User)
@@ -246,18 +251,16 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
         }
 
         // =========================================================
-        // REMOVE MEMBER
+        // REMOVE PROJECT MEMBER
         // =========================================================
 
         public async System.Threading.Tasks.Task RemoveMemberAsync(
             Guid tenantId,
             Guid projectId,
-            Guid userId)
+            Guid userId,
+            Guid actorUserId)
         {
-            // -----------------------------------------------------
-            // 1. Check tenant
-            // -----------------------------------------------------
-
+            // Validate tenant
             var tenantExists = await _context.Tenants
                 .AnyAsync(t =>
                     t.Id == tenantId &&
@@ -269,10 +272,7 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
                     "Tenant not found or inactive.");
             }
 
-            // -----------------------------------------------------
-            // 2. Get project
-            // -----------------------------------------------------
-
+            // Validate project
             var project = await _context.Projects
                 .FirstOrDefaultAsync(p =>
                     p.Id == projectId &&
@@ -284,11 +284,9 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
                     "Project not found in this tenant.");
             }
 
-            // -----------------------------------------------------
-            // 3. Find member
-            // -----------------------------------------------------
-
+            // Find member including user
             var member = await _context.ProjectMembers
+                .Include(x => x.User)
                 .FirstOrDefaultAsync(x =>
                     x.ProjectId == projectId &&
                     x.UserId == userId);
@@ -299,17 +297,32 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
                     "Project member not found.");
             }
 
-            // -----------------------------------------------------
-            // 4. Remove member
-            // -----------------------------------------------------
+            // Keep target user's name before deletion
+            var removedUserName = member.User.FullName;
 
+            // Remove membership
             _context.ProjectMembers.Remove(member);
 
             await _context.SaveChangesAsync();
 
-            // -----------------------------------------------------
-            // 5. Send notification to removed member
-            // -----------------------------------------------------
+            // =====================================================
+            // ACTIVITY LOG
+            // actorUserId = admin who performed the action
+            // userId      = member who was removed
+            // =====================================================
+
+            await _activityLogService.CreateAsync(
+                tenantId,
+                actorUserId,
+                projectId,
+                null,
+                "ProjectMemberRemoved",
+                $"User '{removedUserName}' was removed from project '{project.Name}'.");
+
+            // =====================================================
+            // NOTIFICATION
+            // Notify removed user
+            // =====================================================
 
             await _notificationService.CreateAsync(
                 userId,

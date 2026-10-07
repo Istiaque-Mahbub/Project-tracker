@@ -27,7 +27,7 @@ namespace DeveloperProjectTracker.API.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("ActivityType")
+                    b.Property<string>("Action")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -37,18 +37,16 @@ namespace DeveloperProjectTracker.API.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
-                    b.Property<Guid?>("EntityId")
+                    b.Property<Guid?>("ProjectId")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("EntityType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                    b.Property<Guid?>("TaskId")
+                        .HasColumnType("uuid");
 
-                    b.Property<Guid>("ProjectId")
+                    b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("UserId")
@@ -60,9 +58,11 @@ namespace DeveloperProjectTracker.API.Migrations
 
                     b.HasIndex("ProjectId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("TaskId");
 
-                    b.HasIndex("EntityType", "EntityId");
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("ActivityLogs", (string)null);
                 });
@@ -414,7 +414,7 @@ namespace DeveloperProjectTracker.API.Migrations
                     b.HasIndex("Slug")
                         .IsUnique();
 
-                    b.ToTable("Tenants");
+                    b.ToTable("Tenants", (string)null);
                 });
 
             modelBuilder.Entity("DeveloperProjectTrackerDomain.Entities.TenantMembership", b =>
@@ -524,6 +524,16 @@ namespace DeveloperProjectTracker.API.Migrations
                     b.HasOne("DeveloperProjectTrackerDomain.Entities.Project", "Project")
                         .WithMany("Activities")
                         .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("DeveloperProjectTrackerDomain.Entities.TaskItem", "Task")
+                        .WithMany()
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("DeveloperProjectTrackerDomain.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -534,6 +544,10 @@ namespace DeveloperProjectTracker.API.Migrations
                         .IsRequired();
 
                     b.Navigation("Project");
+
+                    b.Navigation("Task");
+
+                    b.Navigation("Tenant");
 
                     b.Navigation("User");
                 });

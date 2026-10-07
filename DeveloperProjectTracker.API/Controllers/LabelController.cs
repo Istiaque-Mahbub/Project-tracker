@@ -1,4 +1,5 @@
-﻿using DeveloperProjectTracker.API.DTOs.Labels;
+﻿using System.Security.Claims;
+using DeveloperProjectTracker.API.DTOs.Labels;
 using DeveloperProjectTracker.API.Services.Labels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,7 +20,6 @@ namespace DeveloperProjectTracker.API.Controllers
             _labelService = labelService;
         }
 
-
         // =========================================================
         // CREATE LABEL
         // =========================================================
@@ -33,9 +33,23 @@ namespace DeveloperProjectTracker.API.Controllers
         {
             try
             {
+                var userIdClaim = User.FindFirstValue(
+                    ClaimTypes.NameIdentifier);
+
+                if (!Guid.TryParse(
+                        userIdClaim,
+                        out var actorUserId))
+                {
+                    return Unauthorized(new
+                    {
+                        message = "Invalid authenticated user."
+                    });
+                }
+
                 var label = await _labelService.CreateAsync(
                     tenantId,
                     projectId,
+                    actorUserId,
                     request);
 
                 return Ok(label);
@@ -57,6 +71,13 @@ namespace DeveloperProjectTracker.API.Controllers
             catch (InvalidOperationException ex)
             {
                 return Conflict(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new
                 {
                     message = ex.Message
                 });
@@ -164,10 +185,24 @@ namespace DeveloperProjectTracker.API.Controllers
         {
             try
             {
+                var userIdClaim = User.FindFirstValue(
+                    ClaimTypes.NameIdentifier);
+
+                if (!Guid.TryParse(
+                        userIdClaim,
+                        out var actorUserId))
+                {
+                    return Unauthorized(new
+                    {
+                        message = "Invalid authenticated user."
+                    });
+                }
+
                 var label = await _labelService.UpdateAsync(
                     tenantId,
                     projectId,
                     labelId,
+                    actorUserId,
                     request);
 
                 return Ok(label);
@@ -189,6 +224,13 @@ namespace DeveloperProjectTracker.API.Controllers
             catch (InvalidOperationException ex)
             {
                 return Conflict(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new
                 {
                     message = ex.Message
                 });
@@ -218,16 +260,37 @@ namespace DeveloperProjectTracker.API.Controllers
         {
             try
             {
+                var userIdClaim = User.FindFirstValue(
+                    ClaimTypes.NameIdentifier);
+
+                if (!Guid.TryParse(
+                        userIdClaim,
+                        out var actorUserId))
+                {
+                    return Unauthorized(new
+                    {
+                        message = "Invalid authenticated user."
+                    });
+                }
+
                 await _labelService.DeleteAsync(
                     tenantId,
                     projectId,
-                    labelId);
+                    labelId,
+                    actorUserId);
 
                 return NoContent();
             }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new
                 {
                     message = ex.Message
                 });
@@ -258,12 +321,26 @@ namespace DeveloperProjectTracker.API.Controllers
         {
             try
             {
+                var userIdClaim = User.FindFirstValue(
+                    ClaimTypes.NameIdentifier);
+
+                if (!Guid.TryParse(
+                        userIdClaim,
+                        out var actorUserId))
+                {
+                    return Unauthorized(new
+                    {
+                        message = "Invalid authenticated user."
+                    });
+                }
+
                 var result =
                     await _labelService.AddToTaskAsync(
                         tenantId,
                         projectId,
                         taskId,
-                        labelId);
+                        labelId,
+                        actorUserId);
 
                 return Ok(result);
             }
@@ -277,6 +354,13 @@ namespace DeveloperProjectTracker.API.Controllers
             catch (InvalidOperationException ex)
             {
                 return Conflict(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new
                 {
                     message = ex.Message
                 });
@@ -348,17 +432,38 @@ namespace DeveloperProjectTracker.API.Controllers
         {
             try
             {
+                var userIdClaim = User.FindFirstValue(
+                    ClaimTypes.NameIdentifier);
+
+                if (!Guid.TryParse(
+                        userIdClaim,
+                        out var actorUserId))
+                {
+                    return Unauthorized(new
+                    {
+                        message = "Invalid authenticated user."
+                    });
+                }
+
                 await _labelService.RemoveFromTaskAsync(
                     tenantId,
                     projectId,
                     taskId,
-                    labelId);
+                    labelId,
+                    actorUserId);
 
                 return NoContent();
             }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new
                 {
                     message = ex.Message
                 });

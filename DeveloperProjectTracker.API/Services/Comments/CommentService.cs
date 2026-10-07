@@ -1,6 +1,7 @@
 ﻿using DeveloperProjectTracker.API.Data;
 using DeveloperProjectTracker.API.DTOs.Comments;
 using DeveloperProjectTracker.API.DTOs.Notifications;
+using DeveloperProjectTracker.API.Services.ActivityLogs;
 using DeveloperProjectTracker.API.Services.Notifications;
 using DeveloperProjectTrackerDomain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -11,13 +12,16 @@ namespace DeveloperProjectTracker.API.Services.Comments
     {
         private readonly ApplicationDbContext _context;
         private readonly INotificationService _notificationService;
+        private readonly IActivityLogService _activityLogService;
 
         public CommentService(
             ApplicationDbContext context,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IActivityLogService activityLogService)
         {
             _context = context;
             _notificationService = notificationService;
+            _activityLogService = activityLogService;
         }
 
         // =========================================================
@@ -91,6 +95,18 @@ namespace DeveloperProjectTracker.API.Services.Comments
             _context.Comments.Add(comment);
 
             await _context.SaveChangesAsync();
+
+            // -----------------------------------------------------
+            // CREATE ACTIVITY LOG
+            // -----------------------------------------------------
+
+            await _activityLogService.CreateAsync(
+                tenantId,
+                userId,
+                projectId,
+                taskId,
+                "CommentCreated",
+                $"A comment was added to task '{task.Title}'.");
 
             // -----------------------------------------------------
             // Load user navigation
@@ -261,6 +277,18 @@ namespace DeveloperProjectTracker.API.Services.Comments
 
             await _context.SaveChangesAsync();
 
+            // -----------------------------------------------------
+            // CREATE ACTIVITY LOG
+            // -----------------------------------------------------
+
+            await _activityLogService.CreateAsync(
+                tenantId,
+                userId,
+                projectId,
+                taskId,
+                "CommentUpdated",
+                $"A comment was updated on task '{taskId}'.");
+
             return MapToResponse(comment);
         }
 
@@ -297,6 +325,22 @@ namespace DeveloperProjectTracker.API.Services.Comments
                 throw new UnauthorizedAccessException(
                     "You can only delete your own comments.");
             }
+
+            // -----------------------------------------------------
+            // CREATE ACTIVITY LOG BEFORE DELETE
+            // -----------------------------------------------------
+
+            await _activityLogService.CreateAsync(
+                tenantId,
+                userId,
+                projectId,
+                taskId,
+                "CommentDeleted",
+                $"A comment was deleted from task '{taskId}'.");
+
+            // -----------------------------------------------------
+            // DELETE COMMENT
+            // -----------------------------------------------------
 
             _context.Comments.Remove(comment);
 

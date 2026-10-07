@@ -12,7 +12,6 @@ namespace DeveloperProjectTracker.API.Controllers
     [Authorize]
     public class TaskController : ControllerBase
     {
-
         private readonly ITaskService _taskService;
 
         public TaskController(
@@ -99,7 +98,6 @@ namespace DeveloperProjectTracker.API.Controllers
             }
         }
 
-
         // =========================================================
         // GET ALL TASKS
         // =========================================================
@@ -136,7 +134,6 @@ namespace DeveloperProjectTracker.API.Controllers
                     });
             }
         }
-
 
         // =========================================================
         // GET SINGLE TASK
@@ -177,7 +174,6 @@ namespace DeveloperProjectTracker.API.Controllers
             }
         }
 
-
         // =========================================================
         // UPDATE TASK
         // =========================================================
@@ -192,11 +188,31 @@ namespace DeveloperProjectTracker.API.Controllers
         {
             try
             {
+                // -------------------------------------------------
+                // Get current authenticated user
+                // -------------------------------------------------
+
+                var userIdValue =
+                    User.FindFirstValue(
+                        ClaimTypes.NameIdentifier);
+
+                if (!Guid.TryParse(
+                        userIdValue,
+                        out var userId))
+                {
+                    return Unauthorized(new
+                    {
+                        message =
+                            "Unable to identify the current user."
+                    });
+                }
+
                 var task =
                     await _taskService.UpdateAsync(
                         tenantId,
                         projectId,
                         taskId,
+                        userId,
                         request);
 
                 return Ok(task);
@@ -215,42 +231,9 @@ namespace DeveloperProjectTracker.API.Controllers
                     message = ex.Message
                 });
             }
-            catch (Exception)
+            catch (UnauthorizedAccessException ex)
             {
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    new
-                    {
-                        message =
-                            "An unexpected error occurred."
-                    });
-            }
-        }
-
-
-        // =========================================================
-        // DELETE TASK
-        // =========================================================
-
-        [HttpDelete("{taskId:guid}")]
-        [Authorize(Policy = "TenantAdmin")]
-        public async Task<IActionResult> Delete(
-            Guid tenantId,
-            Guid projectId,
-            Guid taskId)
-        {
-            try
-            {
-                await _taskService.DeleteAsync(
-                    tenantId,
-                    projectId,
-                    taskId);
-
-                return NoContent();
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new
+                return Unauthorized(new
                 {
                     message = ex.Message
                 });
@@ -267,6 +250,71 @@ namespace DeveloperProjectTracker.API.Controllers
             }
         }
 
+        // =========================================================
+        // DELETE TASK
+        // =========================================================
+
+        [HttpDelete("{taskId:guid}")]
+        [Authorize(Policy = "TenantAdmin")]
+        public async Task<IActionResult> Delete(
+            Guid tenantId,
+            Guid projectId,
+            Guid taskId)
+        {
+            try
+            {
+                // -------------------------------------------------
+                // Get current authenticated user
+                // -------------------------------------------------
+
+                var userIdValue =
+                    User.FindFirstValue(
+                        ClaimTypes.NameIdentifier);
+
+                if (!Guid.TryParse(
+                        userIdValue,
+                        out var userId))
+                {
+                    return Unauthorized(new
+                    {
+                        message =
+                            "Unable to identify the current user."
+                    });
+                }
+
+                await _taskService.DeleteAsync(
+                    tenantId,
+                    projectId,
+                    taskId,
+                    userId);
+
+                return NoContent();
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message =
+                            "An unexpected error occurred."
+                    });
+            }
+        }
 
         // =========================================================
         // ASSIGN TASK
@@ -282,11 +330,32 @@ namespace DeveloperProjectTracker.API.Controllers
         {
             try
             {
-                var task = await _taskService.AssignAsync(
-                    tenantId,
-                    projectId,
-                    taskId,
-                    request);
+                // -------------------------------------------------
+                // Get current authenticated user
+                // -------------------------------------------------
+
+                var userIdValue =
+                    User.FindFirstValue(
+                        ClaimTypes.NameIdentifier);
+
+                if (!Guid.TryParse(
+                        userIdValue,
+                        out var userId))
+                {
+                    return Unauthorized(new
+                    {
+                        message =
+                            "Unable to identify the current user."
+                    });
+                }
+
+                var task =
+                    await _taskService.AssignAsync(
+                        tenantId,
+                        projectId,
+                        taskId,
+                        userId,
+                        request);
 
                 return Ok(task);
             }
@@ -311,16 +380,23 @@ namespace DeveloperProjectTracker.API.Controllers
                     message = ex.Message
                 });
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new
+                {
+                    message = ex.Message
+                });
+            }
             catch (Exception)
             {
                 return StatusCode(
                     StatusCodes.Status500InternalServerError,
                     new
                     {
-                        message = "An unexpected error occurred."
+                        message =
+                            "An unexpected error occurred."
                     });
             }
         }
-
     }
 }

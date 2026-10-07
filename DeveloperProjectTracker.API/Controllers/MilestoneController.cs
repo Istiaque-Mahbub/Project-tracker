@@ -1,4 +1,5 @@
-﻿using DeveloperProjectTracker.API.DTOs.Milestones;
+﻿using System.Security.Claims;
+using DeveloperProjectTracker.API.DTOs.Milestones;
 using DeveloperProjectTracker.API.Services.Milestones;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -32,10 +33,32 @@ namespace DeveloperProjectTracker.API.Controllers
         {
             try
             {
+                // -------------------------------------------------
+                // Get authenticated user
+                // -------------------------------------------------
+
+                var userIdClaim = User.FindFirstValue(
+                    ClaimTypes.NameIdentifier);
+
+                if (!Guid.TryParse(
+                        userIdClaim,
+                        out var actorUserId))
+                {
+                    return Unauthorized(new
+                    {
+                        message = "Invalid authenticated user."
+                    });
+                }
+
+                // -------------------------------------------------
+                // Create milestone
+                // -------------------------------------------------
+
                 var milestone =
                     await _milestoneService.CreateAsync(
                         tenantId,
                         projectId,
+                        actorUserId,
                         request);
 
                 return Ok(milestone);
@@ -50,6 +73,13 @@ namespace DeveloperProjectTracker.API.Controllers
             catch (ArgumentException ex)
             {
                 return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new
                 {
                     message = ex.Message
                 });
@@ -159,11 +189,33 @@ namespace DeveloperProjectTracker.API.Controllers
         {
             try
             {
+                // -------------------------------------------------
+                // Get authenticated user
+                // -------------------------------------------------
+
+                var userIdClaim = User.FindFirstValue(
+                    ClaimTypes.NameIdentifier);
+
+                if (!Guid.TryParse(
+                        userIdClaim,
+                        out var actorUserId))
+                {
+                    return Unauthorized(new
+                    {
+                        message = "Invalid authenticated user."
+                    });
+                }
+
+                // -------------------------------------------------
+                // Update milestone
+                // -------------------------------------------------
+
                 var milestone =
                     await _milestoneService.UpdateAsync(
                         tenantId,
                         projectId,
                         milestoneId,
+                        actorUserId,
                         request);
 
                 return Ok(milestone);
@@ -178,6 +230,13 @@ namespace DeveloperProjectTracker.API.Controllers
             catch (ArgumentException ex)
             {
                 return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new
                 {
                     message = ex.Message
                 });
@@ -207,16 +266,45 @@ namespace DeveloperProjectTracker.API.Controllers
         {
             try
             {
+                // -------------------------------------------------
+                // Get authenticated user
+                // -------------------------------------------------
+
+                var userIdClaim = User.FindFirstValue(
+                    ClaimTypes.NameIdentifier);
+
+                if (!Guid.TryParse(
+                        userIdClaim,
+                        out var actorUserId))
+                {
+                    return Unauthorized(new
+                    {
+                        message = "Invalid authenticated user."
+                    });
+                }
+
+                // -------------------------------------------------
+                // Delete milestone
+                // -------------------------------------------------
+
                 await _milestoneService.DeleteAsync(
                     tenantId,
                     projectId,
-                    milestoneId);
+                    milestoneId,
+                    actorUserId);
 
                 return NoContent();
             }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new
                 {
                     message = ex.Message
                 });

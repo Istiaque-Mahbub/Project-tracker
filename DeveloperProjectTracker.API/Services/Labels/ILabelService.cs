@@ -2,7 +2,6 @@
 
 namespace DeveloperProjectTracker.API.Services.Labels
 {
-
     public interface ILabelService
     {
         // =========================================================
@@ -12,6 +11,7 @@ namespace DeveloperProjectTracker.API.Services.Labels
         Task<LabelResponseDto> CreateAsync(
             Guid tenantId,
             Guid projectId,
+            Guid actorUserId,
             CreateLabelRequestDto request);
 
         Task<List<LabelResponseDto>> GetAllAsync(
@@ -27,12 +27,14 @@ namespace DeveloperProjectTracker.API.Services.Labels
             Guid tenantId,
             Guid projectId,
             Guid labelId,
+            Guid actorUserId,
             UpdateLabelRequestDto request);
 
         System.Threading.Tasks.Task DeleteAsync(
             Guid tenantId,
             Guid projectId,
-            Guid labelId);
+            Guid labelId,
+            Guid actorUserId);
 
         // =========================================================
         // TASK LABELS
@@ -42,7 +44,8 @@ namespace DeveloperProjectTracker.API.Services.Labels
             Guid tenantId,
             Guid projectId,
             Guid taskId,
-            Guid labelId);
+            Guid labelId,
+            Guid actorUserId);
 
         Task<List<TaskLabelResponseDto>> GetTaskLabelsAsync(
             Guid tenantId,
@@ -53,6 +56,7 @@ namespace DeveloperProjectTracker.API.Services.Labels
             Guid tenantId,
             Guid projectId,
             Guid taskId,
-            Guid labelId);
+            Guid labelId,
+            Guid actorUserId);
     }
 }

@@ -1,5 +1,6 @@
 ﻿using DeveloperProjectTracker.API.Data;
 using DeveloperProjectTracker.API.DTOs.Labels;
+using DeveloperProjectTracker.API.Services.ActivityLogs;
 using DeveloperProjectTrackerDomain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,11 +9,14 @@ namespace DeveloperProjectTracker.API.Services.Labels
     public class LabelService : ILabelService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IActivityLogService _activityLogService;
 
         public LabelService(
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            IActivityLogService activityLogService)
         {
             _context = context;
+            _activityLogService = activityLogService;
         }
 
         // =========================================================
@@ -22,9 +26,10 @@ namespace DeveloperProjectTracker.API.Services.Labels
         public async Task<LabelResponseDto> CreateAsync(
             Guid tenantId,
             Guid projectId,
+            Guid actorUserId,
             CreateLabelRequestDto request)
         {
-            await ValidateProjectAsync(
+            var project = await ValidateProjectAsync(
                 tenantId,
                 projectId);
 
@@ -64,6 +69,18 @@ namespace DeveloperProjectTracker.API.Services.Labels
             _context.Labels.Add(label);
 
             await _context.SaveChangesAsync();
+
+            // -----------------------------------------------------
+            // Activity Log
+            // -----------------------------------------------------
+
+            await _activityLogService.CreateAsync(
+                tenantId,
+                actorUserId,
+                projectId,
+                null,
+                "LabelCreated",
+                $"Label '{label.Name}' was created in project '{project.Name}'.");
 
             return MapToResponse(label);
         }
@@ -136,9 +153,10 @@ namespace DeveloperProjectTracker.API.Services.Labels
             Guid tenantId,
             Guid projectId,
             Guid labelId,
+            Guid actorUserId,
             UpdateLabelRequestDto request)
         {
-            await ValidateProjectAsync(
+            var project = await ValidateProjectAsync(
                 tenantId,
                 projectId);
 
@@ -158,6 +176,13 @@ namespace DeveloperProjectTracker.API.Services.Labels
                 throw new KeyNotFoundException(
                     "Label not found.");
             }
+
+            // -----------------------------------------------------
+            // Store old values for activity log
+            // -----------------------------------------------------
+
+            var oldName = label.Name;
+            var oldColor = label.Color;
 
             var labelName = request.Name.Trim();
 
@@ -179,6 +204,39 @@ namespace DeveloperProjectTracker.API.Services.Labels
 
             await _context.SaveChangesAsync();
 
+            // -----------------------------------------------------
+            // Build activity description
+            // -----------------------------------------------------
+
+            var changes = new List<string>();
+
+            if (oldName != label.Name)
+            {
+                changes.Add(
+                    $"name changed from '{oldName}' to '{label.Name}'");
+            }
+
+            if (oldColor != label.Color)
+            {
+                changes.Add("color updated");
+            }
+
+            // -----------------------------------------------------
+            // Activity Log
+            // -----------------------------------------------------
+
+            if (changes.Count > 0)
+            {
+                await _activityLogService.CreateAsync(
+                    tenantId,
+                    actorUserId,
+                    projectId,
+                    null,
+                    "LabelUpdated",
+                    $"Label '{label.Name}' was updated in project '{project.Name}'. " +
+                    $"Changes: {string.Join("; ", changes)}.");
+            }
+
             return MapToResponse(label);
         }
 
@@ -189,9 +247,10 @@ namespace DeveloperProjectTracker.API.Services.Labels
         public async System.Threading.Tasks.Task DeleteAsync(
             Guid tenantId,
             Guid projectId,
-            Guid labelId)
+            Guid labelId,
+            Guid actorUserId)
         {
-            await ValidateProjectAsync(
+            var project = await ValidateProjectAsync(
                 tenantId,
                 projectId);
 
@@ -206,7 +265,16 @@ namespace DeveloperProjectTracker.API.Services.Labels
                     "Label not found.");
             }
 
-            // Remove task-label relationships first.
+            // -----------------------------------------------------
+            // Store label name before deletion
+            // -----------------------------------------------------
+
+            var labelName = label.Name;
+
+            // -----------------------------------------------------
+            // Remove task-label relationships first
+            // -----------------------------------------------------
+
             var taskLabels = await _context.TaskLables
                 .Where(x =>
                     x.LabelId == labelId)
@@ -221,6 +289,18 @@ namespace DeveloperProjectTracker.API.Services.Labels
             _context.Labels.Remove(label);
 
             await _context.SaveChangesAsync();
+
+            // -----------------------------------------------------
+            // Activity Log
+            // -----------------------------------------------------
+
+            await _activityLogService.CreateAsync(
+                tenantId,
+                actorUserId,
+                projectId,
+                null,
+                "LabelDeleted",
+                $"Label '{labelName}' was deleted from project '{project.Name}'.");
         }
 
         // =========================================================
@@ -231,12 +311,23 @@ namespace DeveloperProjectTracker.API.Services.Labels
             Guid tenantId,
             Guid projectId,
             Guid taskId,
-            Guid labelId)
+            Guid labelId,
+            Guid actorUserId)
         {
-            await ValidateTaskAsync(
+            var project = await ValidateProjectAsync(
                 tenantId,
-                projectId,
-                taskId);
+                projectId);
+
+            var task = await _context.TaskItems
+                .FirstOrDefaultAsync(x =>
+                    x.Id == taskId &&
+                    x.ProjectId == projectId);
+
+            if (task is null)
+            {
+                throw new KeyNotFoundException(
+                    "Task not found in this project.");
+            }
 
             var label = await _context.Labels
                 .FirstOrDefaultAsync(x =>
@@ -270,6 +361,18 @@ namespace DeveloperProjectTracker.API.Services.Labels
             _context.TaskLables.Add(taskLabel);
 
             await _context.SaveChangesAsync();
+
+            // -----------------------------------------------------
+            // Activity Log
+            // -----------------------------------------------------
+
+            await _activityLogService.CreateAsync(
+                tenantId,
+                actorUserId,
+                projectId,
+                taskId,
+                "TaskLabelAdded",
+                $"Label '{label.Name}' was added to task '{task.Title}' in project '{project.Name}'.");
 
             return new TaskLabelResponseDto
             {
@@ -324,14 +427,26 @@ namespace DeveloperProjectTracker.API.Services.Labels
             Guid tenantId,
             Guid projectId,
             Guid taskId,
-            Guid labelId)
+            Guid labelId,
+            Guid actorUserId)
         {
-            await ValidateTaskAsync(
+            var project = await ValidateProjectAsync(
                 tenantId,
-                projectId,
-                taskId);
+                projectId);
+
+            var task = await _context.TaskItems
+                .FirstOrDefaultAsync(x =>
+                    x.Id == taskId &&
+                    x.ProjectId == projectId);
+
+            if (task is null)
+            {
+                throw new KeyNotFoundException(
+                    "Task not found in this project.");
+            }
 
             var taskLabel = await _context.TaskLables
+                .Include(x => x.Label)
                 .FirstOrDefaultAsync(x =>
                     x.TaskId == taskId &&
                     x.LabelId == labelId);
@@ -342,19 +457,38 @@ namespace DeveloperProjectTracker.API.Services.Labels
                     "This label is not assigned to the task.");
             }
 
+            var labelName = taskLabel.Label.Name;
+
             _context.TaskLables.Remove(taskLabel);
 
             await _context.SaveChangesAsync();
+
+            // -----------------------------------------------------
+            // Activity Log
+            // -----------------------------------------------------
+
+            await _activityLogService.CreateAsync(
+                tenantId,
+                actorUserId,
+                projectId,
+                taskId,
+                "TaskLabelRemoved",
+                $"Label '{labelName}' was removed from task '{task.Title}' in project '{project.Name}'.");
         }
 
         // =========================================================
         // VALIDATE PROJECT
         // =========================================================
 
-        private async System.Threading.Tasks.Task ValidateProjectAsync(
-            Guid tenantId,
-            Guid projectId)
+        private async Task<DeveloperProjectTrackerDomain.Entities.Project>
+            ValidateProjectAsync(
+                Guid tenantId,
+                Guid projectId)
         {
+            // -----------------------------------------------------
+            // Check tenant
+            // -----------------------------------------------------
+
             var tenantExists = await _context.Tenants
                 .AnyAsync(x =>
                     x.Id == tenantId &&
@@ -366,16 +500,22 @@ namespace DeveloperProjectTracker.API.Services.Labels
                     "Tenant not found or inactive.");
             }
 
-            var projectExists = await _context.Projects
-                .AnyAsync(x =>
+            // -----------------------------------------------------
+            // Check project
+            // -----------------------------------------------------
+
+            var project = await _context.Projects
+                .FirstOrDefaultAsync(x =>
                     x.Id == projectId &&
                     x.TenantId == tenantId);
 
-            if (!projectExists)
+            if (project is null)
             {
                 throw new KeyNotFoundException(
                     "Project not found in this tenant.");
             }
+
+            return project;
         }
 
         // =========================================================

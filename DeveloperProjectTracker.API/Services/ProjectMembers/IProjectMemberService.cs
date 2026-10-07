@@ -1,6 +1,5 @@
 ﻿using DeveloperProjectTracker.API.DTOs.ProjectMembers;
 
-
 namespace DeveloperProjectTracker.API.Services.ProjectMembers
 {
     public interface IProjectMemberService
@@ -8,6 +7,7 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
         Task<ProjectMemberResponseDto> AddMemberAsync(
             Guid tenantId,
             Guid projectId,
+            Guid userId,
             AddProjectMemberRequestDto request);
 
         Task<List<ProjectMemberResponseDto>> GetMembersAsync(
@@ -22,6 +22,7 @@ namespace DeveloperProjectTracker.API.Services.ProjectMembers
         System.Threading.Tasks.Task RemoveMemberAsync(
             Guid tenantId,
             Guid projectId,
-            Guid userId);
+            Guid userId,
+            Guid actorUserId);
     }
 }

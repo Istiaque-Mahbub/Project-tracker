@@ -1,5 +1,6 @@
 ﻿using DeveloperProjectTracker.API.Data;
 using DeveloperProjectTracker.API.DTOs.WorkLogs;
+using DeveloperProjectTracker.API.Services.ActivityLogs;
 using DeveloperProjectTrackerDomain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,13 +9,15 @@ namespace DeveloperProjectTracker.API.Services.WorkLogs
     public class WorkLogService : IWorkLogService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IActivityLogService _activityLogService;
 
         public WorkLogService(
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            IActivityLogService activityLogService)
         {
             _context = context;
+            _activityLogService = activityLogService;
         }
-
 
         // =========================================================
         // CREATE WORK LOG
@@ -27,7 +30,7 @@ namespace DeveloperProjectTracker.API.Services.WorkLogs
             Guid userId,
             CreateWorkLogRequestDto request)
         {
-            await ValidateTaskAsync(
+            var (project, task) = await ValidateTaskAsync(
                 tenantId,
                 projectId,
                 taskId);
@@ -36,10 +39,10 @@ namespace DeveloperProjectTracker.API.Services.WorkLogs
             // Validate user
             // -----------------------------------------------------
 
-            var userExists = await _context.Users
-                .AnyAsync(x => x.Id == userId);
+            var user = await _context.Users
+                .FirstOrDefaultAsync(x => x.Id == userId);
 
-            if (!userExists)
+            if (user is null)
             {
                 throw new UnauthorizedAccessException(
                     "User not found.");
@@ -101,9 +104,23 @@ namespace DeveloperProjectTracker.API.Services.WorkLogs
 
             await _context.SaveChangesAsync();
 
-            await _context.Entry(workLog)
-                .Reference(x => x.User)
-                .LoadAsync();
+            // -----------------------------------------------------
+            // Activity Log
+            // -----------------------------------------------------
+
+            await _activityLogService.CreateAsync(
+                tenantId,
+                userId,
+                projectId,
+                taskId,
+                "WorkLogCreated",
+                $"User '{user.FullName}' created a work log for task '{task.Title}' in project '{project.Name}'.");
+
+            // -----------------------------------------------------
+            // Load user for response
+            // -----------------------------------------------------
+
+            workLog.User = user;
 
             return MapToResponse(workLog);
         }
@@ -191,7 +208,7 @@ namespace DeveloperProjectTracker.API.Services.WorkLogs
             Guid userId,
             UpdateWorkLogRequestDto request)
         {
-            await ValidateTaskAsync(
+            var (project, task) = await ValidateTaskAsync(
                 tenantId,
                 projectId,
                 taskId);
@@ -217,6 +234,22 @@ namespace DeveloperProjectTracker.API.Services.WorkLogs
                 throw new UnauthorizedAccessException(
                     "You can only update your own work logs.");
             }
+
+            // -----------------------------------------------------
+            // Store old values
+            // -----------------------------------------------------
+
+            var oldStartedAt =
+                workLog.StartedAt;
+
+            var oldEndedAt =
+                workLog.EndedAt;
+
+            var oldDurationMinutes =
+                workLog.DurationMinutes;
+
+            var oldDescription =
+                workLog.Description;
 
             // -----------------------------------------------------
             // Validate dates
@@ -253,6 +286,10 @@ namespace DeveloperProjectTracker.API.Services.WorkLogs
                     .TotalMinutes;
             }
 
+            // -----------------------------------------------------
+            // Update
+            // -----------------------------------------------------
+
             workLog.StartedAt =
                 request.StartedAt;
 
@@ -266,6 +303,54 @@ namespace DeveloperProjectTracker.API.Services.WorkLogs
                 request.Description?.Trim();
 
             await _context.SaveChangesAsync();
+
+            // -----------------------------------------------------
+            // Build activity changes
+            // -----------------------------------------------------
+
+            var changes = new List<string>();
+
+            if (oldStartedAt != workLog.StartedAt)
+            {
+                changes.Add(
+                    $"StartedAt changed from '{oldStartedAt}' to '{workLog.StartedAt}'");
+            }
+
+            if (oldEndedAt != workLog.EndedAt)
+            {
+                changes.Add(
+                    $"EndedAt changed from '{oldEndedAt}' to '{workLog.EndedAt}'");
+            }
+
+            if (oldDurationMinutes != workLog.DurationMinutes)
+            {
+                changes.Add(
+                    $"DurationMinutes changed from '{oldDurationMinutes}' to '{workLog.DurationMinutes}'");
+            }
+
+            if (!string.Equals(
+                    oldDescription,
+                    workLog.Description,
+                    StringComparison.Ordinal))
+            {
+                changes.Add(
+                    "Description changed");
+            }
+
+            // -----------------------------------------------------
+            // Activity Log
+            // -----------------------------------------------------
+
+            if (changes.Count > 0)
+            {
+                await _activityLogService.CreateAsync(
+                    tenantId,
+                    userId,
+                    projectId,
+                    taskId,
+                    "WorkLogUpdated",
+                    $"User '{workLog.User.FullName}' updated a work log for task '{task.Title}' in project '{project.Name}'. Changes: {string.Join(", ", changes)}.");
+            }
 
             return MapToResponse(workLog);
         }
@@ -281,12 +366,13 @@ namespace DeveloperProjectTracker.API.Services.WorkLogs
             Guid workLogId,
             Guid userId)
         {
-            await ValidateTaskAsync(
+            var (project, task) = await ValidateTaskAsync(
                 tenantId,
                 projectId,
                 taskId);
 
             var workLog = await _context.Worklogs
+                .Include(x => x.User)
                 .FirstOrDefaultAsync(x =>
                     x.Id == workLogId &&
                     x.TaskId == taskId);
@@ -307,6 +393,22 @@ namespace DeveloperProjectTracker.API.Services.WorkLogs
                     "You can only delete your own work logs.");
             }
 
+            // -----------------------------------------------------
+            // Activity Log BEFORE deletion
+            // -----------------------------------------------------
+
+            await _activityLogService.CreateAsync(
+                tenantId,
+                userId,
+                projectId,
+                taskId,
+                "WorkLogDeleted",
+                $"User '{workLog.User.FullName}' deleted a work log for task '{task.Title}' in project '{project.Name}'.");
+
+            // -----------------------------------------------------
+            // Delete
+            // -----------------------------------------------------
+
             _context.Worklogs.Remove(workLog);
 
             await _context.SaveChangesAsync();
@@ -316,10 +418,11 @@ namespace DeveloperProjectTracker.API.Services.WorkLogs
         // VALIDATE TASK
         // =========================================================
 
-        private async System.Threading.Tasks.Task ValidateTaskAsync(
-            Guid tenantId,
-            Guid projectId,
-            Guid taskId)
+        private async Task<(Project Project, TaskItem Task)>
+            ValidateTaskAsync(
+                Guid tenantId,
+                Guid projectId,
+                Guid taskId)
         {
             // -----------------------------------------------------
             // Check tenant
@@ -337,34 +440,36 @@ namespace DeveloperProjectTracker.API.Services.WorkLogs
             }
 
             // -----------------------------------------------------
-            // Check project
+            // Get project
             // -----------------------------------------------------
 
-            var projectExists = await _context.Projects
-                .AnyAsync(x =>
+            var project = await _context.Projects
+                .FirstOrDefaultAsync(x =>
                     x.Id == projectId &&
                     x.TenantId == tenantId);
 
-            if (!projectExists)
+            if (project is null)
             {
                 throw new KeyNotFoundException(
                     "Project not found in this tenant.");
             }
 
             // -----------------------------------------------------
-            // Check task
+            // Get task
             // -----------------------------------------------------
 
-            var taskExists = await _context.TaskItems
-                .AnyAsync(x =>
+            var task = await _context.TaskItems
+                .FirstOrDefaultAsync(x =>
                     x.Id == taskId &&
                     x.ProjectId == projectId);
 
-            if (!taskExists)
+            if (task is null)
             {
                 throw new KeyNotFoundException(
                     "Task not found in this project.");
             }
+
+            return (project, task);
         }
 
         // =========================================================
@@ -395,7 +500,5 @@ namespace DeveloperProjectTracker.API.Services.WorkLogs
                     workLog.Description
             };
         }
-
-
     }
 }

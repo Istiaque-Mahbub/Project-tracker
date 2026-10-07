@@ -5,11 +5,11 @@ namespace DeveloperProjectTracker.API.Services.WorkLogs
     public interface IWorkLogService
     {
         Task<WorkLogResponseDto> CreateAsync(
-    Guid tenantId,
-    Guid projectId,
-    Guid taskId,
-    Guid userId,
-    CreateWorkLogRequestDto request);
+            Guid tenantId,
+            Guid projectId,
+            Guid taskId,
+            Guid userId,
+            CreateWorkLogRequestDto request);
 
         Task<List<WorkLogResponseDto>> GetAllAsync(
             Guid tenantId,
@@ -36,6 +36,5 @@ namespace DeveloperProjectTracker.API.Services.WorkLogs
             Guid taskId,
             Guid workLogId,
             Guid userId);
-
     }
 }

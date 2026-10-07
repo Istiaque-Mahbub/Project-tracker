@@ -22,7 +22,7 @@ namespace DeveloperProjectTracker.API.Data
         public DbSet<Milestone> Milestones => Set<Milestone>();
         public DbSet<WorkLog> Worklogs => Set<WorkLog>();
         public DbSet<Notification> Notifications => Set<Notification>();
-        public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
+        public DbSet<ActivityLog> ActivityLogs { get; set; }
 
         public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 

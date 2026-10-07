@@ -3,6 +3,7 @@ using DeveloperProjectTracker.API.Configuration;
 using DeveloperProjectTracker.API.Data;
 using DeveloperProjectTracker.API.Data.Seed;
 using DeveloperProjectTracker.API.Hubs;
+using DeveloperProjectTracker.API.Services.ActivityLogs;
 using DeveloperProjectTracker.API.Services.Auth;
 using DeveloperProjectTracker.API.Services.Comments;
 using DeveloperProjectTracker.API.Services.Labels;
@@ -165,6 +166,15 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     INotificationService,
     NotificationService>();
+
+
+// =====================================================
+// NOTIFICATIONS
+// =====================================================
+
+builder.Services.AddScoped<
+    IActivityLogService,
+    ActivityLogService>();
 
 // =====================================================
 // JWT AUTHENTICATION

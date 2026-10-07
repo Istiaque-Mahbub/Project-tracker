@@ -4,21 +4,26 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace DeveloperProjectTracker.API.Data.Configurations
 {
-    public class TenantMembershipConfiguration : IEntityTypeConfiguration<TenantMembership>
+    public class TenantMembershipConfiguration
+        : IEntityTypeConfiguration<TenantMembership>
     {
-        public void Configure(EntityTypeBuilder<TenantMembership> builder)
+        public void Configure(
+            EntityTypeBuilder<TenantMembership> builder)
         {
             builder.ToTable("TenantMemberships");
 
+            // Primary Key
             builder.HasKey(x => x.Id);
 
             builder.Property(x => x.Id)
                 .ValueGeneratedOnAdd();
 
+            // Role
             builder.Property(x => x.Role)
                 .HasConversion<string>()
                 .IsRequired();
 
+            // JoinedAt
             builder.Property(x => x.JoinedAt)
                 .HasColumnType("timestamp with time zone")
                 .IsRequired();
