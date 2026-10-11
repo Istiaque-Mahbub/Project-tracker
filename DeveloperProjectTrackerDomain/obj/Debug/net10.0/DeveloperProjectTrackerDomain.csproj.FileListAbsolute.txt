@@ -10,3 +10,15 @@ E:\C#\DeveloperProjectTracker.API\DeveloperProjectTrackerDomain\obj\Debug\net10.
 E:\C#\DeveloperProjectTracker.API\DeveloperProjectTrackerDomain\obj\Debug\net10.0\refint\DeveloperProjectTrackerDomain.dll
 E:\C#\DeveloperProjectTracker.API\DeveloperProjectTrackerDomain\obj\Debug\net10.0\DeveloperProjectTrackerDomain.pdb
 E:\C#\DeveloperProjectTracker.API\DeveloperProjectTrackerDomain\obj\Debug\net10.0\ref\DeveloperProjectTrackerDomain.dll
+E:\CSharp\DeveloperProjectTracker.API\DeveloperProjectTrackerDomain\bin\Debug\net10.0\DeveloperProjectTrackerDomain.deps.json
+E:\CSharp\DeveloperProjectTracker.API\DeveloperProjectTrackerDomain\bin\Debug\net10.0\DeveloperProjectTrackerDomain.dll
+E:\CSharp\DeveloperProjectTracker.API\DeveloperProjectTrackerDomain\bin\Debug\net10.0\DeveloperProjectTrackerDomain.pdb
+E:\CSharp\DeveloperProjectTracker.API\DeveloperProjectTrackerDomain\obj\Debug\net10.0\DeveloperProjectTrackerDomain.GeneratedMSBuildEditorConfig.editorconfig
+E:\CSharp\DeveloperProjectTracker.API\DeveloperProjectTrackerDomain\obj\Debug\net10.0\DeveloperProjectTrackerDomain.AssemblyInfoInputs.cache
+E:\CSharp\DeveloperProjectTracker.API\DeveloperProjectTrackerDomain\obj\Debug\net10.0\DeveloperProjectTrackerDomain.AssemblyInfo.cs
+E:\CSharp\DeveloperProjectTracker.API\DeveloperProjectTrackerDomain\obj\Debug\net10.0\DeveloperProjectTrackerDomain.csproj.CoreCompileInputs.cache
+E:\CSharp\DeveloperProjectTracker.API\DeveloperProjectTrackerDomain\obj\Debug\net10.0\DeveloperProjectTrackerDomain.sourcelink.json
+E:\CSharp\DeveloperProjectTracker.API\DeveloperProjectTrackerDomain\obj\Debug\net10.0\DeveloperProjectTrackerDomain.dll
+E:\CSharp\DeveloperProjectTracker.API\DeveloperProjectTrackerDomain\obj\Debug\net10.0\refint\DeveloperProjectTrackerDomain.dll
+E:\CSharp\DeveloperProjectTracker.API\DeveloperProjectTrackerDomain\obj\Debug\net10.0\DeveloperProjectTrackerDomain.pdb
+E:\CSharp\DeveloperProjectTracker.API\DeveloperProjectTrackerDomain\obj\Debug\net10.0\ref\DeveloperProjectTrackerDomain.dll

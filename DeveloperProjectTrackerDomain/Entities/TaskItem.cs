@@ -49,5 +49,8 @@ namespace DeveloperProjectTrackerDomain.Entities
         public ICollection<WorkLog> WorkLogs { get; set; }
             = new List<WorkLog>();
 
+        public ICollection<TaskAssignment> Assignments { get; set; }
+    = new List<TaskAssignment>();
+
     }
 }

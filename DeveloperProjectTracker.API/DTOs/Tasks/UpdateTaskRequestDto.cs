@@ -1,4 +1,5 @@
-﻿using DeveloperProjectTrackerDomain.Enums;
+﻿
+using DeveloperProjectTrackerDomain.Enums;
 using TaskStatus = DeveloperProjectTrackerDomain.Enums.TaskStatus;
 
 namespace DeveloperProjectTracker.API.DTOs.Tasks
@@ -9,7 +10,7 @@ namespace DeveloperProjectTracker.API.DTOs.Tasks
 
         public string? Description { get; set; }
 
-        public Guid? AssignedToId { get; set; }
+        public List<Guid> AssignedToIds { get; set; } = new();
 
         public Guid? MilestoneId { get; set; }
 
