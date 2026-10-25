@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "BAEt4lLm9KY=",
+  "dgSpecHash": "jNdUt5QZklg=",
   "success": true,
   "projectFilePath": "E:\\CSharp\\DeveloperProjectTracker.API\\DeveloperProjectTracker.API\\DeveloperProjectTracker.API.csproj",
   "expectedPackageFiles": [
@@ -21,6 +21,7 @@
     "C:\\Users\\Hp\\.nuget\\packages\\microsoft.entityframeworkcore.design\\10.0.12\\microsoft.entityframeworkcore.design.10.0.12.nupkg.sha512",
     "C:\\Users\\Hp\\.nuget\\packages\\microsoft.entityframeworkcore.relational\\10.0.12\\microsoft.entityframeworkcore.relational.10.0.12.nupkg.sha512",
     "C:\\Users\\Hp\\.nuget\\packages\\microsoft.extensions.apidescription.server\\10.0.0\\microsoft.extensions.apidescription.server.10.0.0.nupkg.sha512",
+    "C:\\Users\\Hp\\.nuget\\packages\\microsoft.extensions.dependencyinjection\\10.0.13\\microsoft.extensions.dependencyinjection.10.0.13.nupkg.sha512",
     "C:\\Users\\Hp\\.nuget\\packages\\microsoft.extensions.dependencymodel\\10.0.12\\microsoft.extensions.dependencymodel.10.0.12.nupkg.sha512",
     "C:\\Users\\Hp\\.nuget\\packages\\microsoft.identitymodel.abstractions\\8.19.2\\microsoft.identitymodel.abstractions.8.19.2.nupkg.sha512",
     "C:\\Users\\Hp\\.nuget\\packages\\microsoft.identitymodel.jsonwebtokens\\8.19.2\\microsoft.identitymodel.jsonwebtokens.8.19.2.nupkg.sha512",
@@ -47,5 +48,18 @@
     "C:\\Users\\Hp\\.nuget\\packages\\system.composition.typedparts\\9.0.0\\system.composition.typedparts.9.0.0.nupkg.sha512",
     "C:\\Users\\Hp\\.nuget\\packages\\system.identitymodel.tokens.jwt\\8.19.2\\system.identitymodel.tokens.jwt.8.19.2.nupkg.sha512"
   ],
-  "logs": []
+  "logs": [
+    {
+      "code": "NU1510",
+      "level": "Warning",
+      "message": "PackageReference Microsoft.Extensions.DependencyInjection will not be pruned. This package is automatically available and does not need to be referenced explicitly. Remove the PackageReference item.",
+      "projectPath": "E:\\CSharp\\DeveloperProjectTracker.API\\DeveloperProjectTracker.API\\DeveloperProjectTracker.API.csproj",
+      "warningLevel": 1,
+      "filePath": "E:\\CSharp\\DeveloperProjectTracker.API\\DeveloperProjectTracker.API\\DeveloperProjectTracker.API.csproj",
+      "libraryId": "Microsoft.Extensions.DependencyInjection",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    }
+  ]
 }

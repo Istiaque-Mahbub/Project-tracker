@@ -3403,9 +3403,12 @@
       "AssignTaskRequestDto": {
         "type": "object",
         "properties": {
-          "assignedToId": {
-            "type": "string",
-            "format": "uuid",
+          "assignedToIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
             "nullable": true
           }
         },
@@ -3581,9 +3584,12 @@
             "type": "string",
             "nullable": true
           },
-          "assignedToId": {
-            "type": "string",
-            "format": "uuid",
+          "assignedToIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
             "nullable": true
           },
           "milestoneId": {
@@ -3974,6 +3980,21 @@
           "assignedToName": {
             "type": "string",
             "nullable": true
+          },
+          "assignedToIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "nullable": true
+          },
+          "assignedToNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -4121,9 +4142,12 @@
             "type": "string",
             "nullable": true
           },
-          "assignedToId": {
-            "type": "string",
-            "format": "uuid",
+          "assignedToIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
             "nullable": true
           },
           "milestoneId": {
