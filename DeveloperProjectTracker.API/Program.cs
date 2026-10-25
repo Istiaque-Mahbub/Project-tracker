@@ -331,12 +331,12 @@ using (var scope = app.Services.CreateScope())
 // DEVELOPMENT
 // =====================================================
 
-if (app.Environment.IsDevelopment())
-{
+
+
     app.UseSwagger();
 
     app.UseSwaggerUI();
-}
+
 
 // =====================================================
 // HTTP PIPELINE
