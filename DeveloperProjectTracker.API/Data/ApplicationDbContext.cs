@@ -39,6 +39,8 @@ namespace DeveloperProjectTracker.API.Data
 
         public DbSet<TenantMembership> TenantMemberships => Set<TenantMembership>();
 
+        public DbSet<TaskAssignment> TaskAssignments { get; set; }
+
         protected override void OnModelCreating(
             ModelBuilder modelBuilder)
         {
@@ -48,6 +50,24 @@ namespace DeveloperProjectTracker.API.Data
             // classes from the API assembly.
             modelBuilder.ApplyConfigurationsFromAssembly(
                 typeof(ApplicationDbContext).Assembly);
+
+            modelBuilder.Entity<TaskAssignment>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+
+                entity.HasOne(x => x.Task)
+                    .WithMany(x => x.Assignments)
+                    .HasForeignKey(x => x.TaskId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(x => x.User)
+                    .WithMany()
+                    .HasForeignKey(x => x.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => new { x.TaskId, x.UserId })
+                    .IsUnique();
+            });
         }
     }
 }

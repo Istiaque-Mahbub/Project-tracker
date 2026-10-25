@@ -5,6 +5,180 @@
     "version": "v1"
   },
   "paths": {
+    "/api/tenants/{tenantId}/activities": {
+      "get": {
+        "tags": [
+          "ActivityLog"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ActivityLogResponseDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ActivityLogResponseDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ActivityLogResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tenants/{tenantId}/activities/projects/{projectId}": {
+      "get": {
+        "tags": [
+          "ActivityLog"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ActivityLogResponseDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ActivityLogResponseDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ActivityLogResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tenants/{tenantId}/activities/projects/{projectId}/tasks/{taskId}": {
+      "get": {
+        "tags": [
+          "ActivityLog"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ActivityLogResponseDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ActivityLogResponseDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ActivityLogResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/Auth/register": {
       "post": {
         "tags": [
@@ -3159,6 +3333,50 @@
   },
   "components": {
     "schemas": {
+      "ActivityLogResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "taskId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userName": {
+            "type": "string",
+            "nullable": true
+          },
+          "action": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
       "AddProjectMemberRequestDto": {
         "type": "object",
         "properties": {
@@ -4030,6 +4248,9 @@
     }
   ],
   "tags": [
+    {
+      "name": "ActivityLog"
+    },
     {
       "name": "Auth"
     },

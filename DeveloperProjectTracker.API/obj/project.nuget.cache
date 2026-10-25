@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "m9+tqiCN5tY=",
+  "dgSpecHash": "BAEt4lLm9KY=",
   "success": true,
-  "projectFilePath": "E:\\C#\\DeveloperProjectTracker.API\\DeveloperProjectTracker.API\\DeveloperProjectTracker.API.csproj",
+  "projectFilePath": "E:\\CSharp\\DeveloperProjectTracker.API\\DeveloperProjectTracker.API\\DeveloperProjectTracker.API.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Hp\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\Hp\\.nuget\\packages\\microsoft.aspnetcore.authentication.jwtbearer\\10.0.12\\microsoft.aspnetcore.authentication.jwtbearer.10.0.12.nupkg.sha512",

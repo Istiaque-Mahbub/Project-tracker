@@ -353,6 +353,99 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "DeveloperProjectTracker.API.Controllers.ActivityLogController",
+    "Method": "GetTenantActivities",
+    "RelativePath": "api/tenants/{tenantId}/activities",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "tenantId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.List\u00601[[DeveloperProjectTracker.API.DTOs.ActivityLogs.ActivityLogResponseDto, DeveloperProjectTracker.API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "DeveloperProjectTracker.API.Controllers.ActivityLogController",
+    "Method": "GetProjectActivities",
+    "RelativePath": "api/tenants/{tenantId}/activities/projects/{projectId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "tenantId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "projectId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.List\u00601[[DeveloperProjectTracker.API.DTOs.ActivityLogs.ActivityLogResponseDto, DeveloperProjectTracker.API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "DeveloperProjectTracker.API.Controllers.ActivityLogController",
+    "Method": "GetTaskActivities",
+    "RelativePath": "api/tenants/{tenantId}/activities/projects/{projectId}/tasks/{taskId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "tenantId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "projectId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "taskId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.List\u00601[[DeveloperProjectTracker.API.DTOs.ActivityLogs.ActivityLogResponseDto, DeveloperProjectTracker.API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
     "ContainingType": "DeveloperProjectTracker.API.Controllers.TenantMembershipController",
     "Method": "AddMember",
     "RelativePath": "api/tenants/{tenantId}/members",

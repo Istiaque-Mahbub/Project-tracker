@@ -81,6 +81,18 @@ namespace DeveloperProjectTracker.API.Services.Projects
                 CreateAt = DateTime.UtcNow
             };
 
+            var projectMember = new ProjectMember
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = project.Id,
+                UserId = actorUserId
+            };
+
+            _context.Projects.Add(project);
+            _context.ProjectMembers.Add(projectMember);
+
+            await _context.SaveChangesAsync();
+
             _context.Projects.Add(project);
 
             await _context.SaveChangesAsync();
