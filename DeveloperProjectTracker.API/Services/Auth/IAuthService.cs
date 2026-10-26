@@ -16,5 +16,8 @@ namespace DeveloperProjectTracker.API.Services.Auth
         Task<SelectTenantResponseDto> SelectTenantAsync(
             Guid userId,
             Guid tenantId);
+
+        System.Threading.Tasks.Task LogoutAsync(
+            RefreshTokenRequestDto request);
     }
 }

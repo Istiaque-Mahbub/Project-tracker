@@ -131,5 +131,42 @@ namespace DeveloperProjectTracker.API.Controllers
                     });
             }
         }
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout(
+    [FromBody] RefreshTokenRequestDto request)
+        {
+            try
+            {
+                await _authService.LogoutAsync(request);
+
+                return Ok(new
+                {
+                    message = "Logged out successfully."
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                // Log the exception here if ILogger is configured.
+                return StatusCode(500, new
+                {
+                    message = "An unexpected error occurred while logging out."
+                });
+            }
+        }
     }
 }

@@ -337,5 +337,36 @@ namespace DeveloperProjectTracker.API.Services.Auth
                             "Jwt:AccessTokenExpirationMinutes"))
             };
         }
+
+     
+// =========================================================
+// LOGOUT
+// =========================================================
+
+public async System.Threading.Tasks.Task LogoutAsync(
+    RefreshTokenRequestDto request)
+        {
+            if (string.IsNullOrWhiteSpace(request.RefreshToken))
+            {
+                throw new ArgumentException(
+                    "Refresh token is required.");
+            }
+
+            var storedToken = await _context.RefreshTokens
+                .FirstOrDefaultAsync(x =>
+                    x.Token == request.RefreshToken);
+
+            // Logout is idempotent: an unknown or already-revoked
+            // token does not need to be revoked again.
+            if (storedToken is null || storedToken.RevokedAt.HasValue)
+            {
+                return;
+                
+            }
+
+            storedToken.RevokedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+        }
     }
 }
